@@ -1,0 +1,29 @@
+{
+  "name": "@docugraph/core",
+  "version": "0.1.0",
+  "description": "DocuGraph Core Engine - Local diagram compiler, resource queue and filesystem explorer",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.2",
+    "p-limit": "^6.2.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2",
+    "@types/node": "^22.13.10"
+  }
+}
