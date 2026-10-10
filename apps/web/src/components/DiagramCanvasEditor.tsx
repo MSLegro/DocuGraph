@@ -77,6 +77,9 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const panRef = useRef(pan);
   panRef.current = pan;
+  const [diagramDimensions, setDiagramDimensions] = useState<{ width: number; height: number }>({ width: 800, height: 600 });
+  const dimensionsRef = useRef(diagramDimensions);
+  dimensionsRef.current = diagramDimensions;
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -201,15 +204,15 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
       // 1. Try SVG viewBox baseVal
       const viewBox = svgEl.viewBox?.baseVal;
       if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
-        return { width: viewBox.width, height: viewBox.height };
+        return { width: Math.round(viewBox.width), height: Math.round(viewBox.height) };
       }
 
-      // 2. Try viewBox attribute string (e.g. "0 0 800 600")
+      // 2. Try viewBox attribute string (e.g. "0 0 800 600" or "-182 -10 1612 2119")
       const viewBoxAttr = svgEl.getAttribute('viewBox');
       if (viewBoxAttr) {
         const parts = viewBoxAttr.split(/[\s,]+/).map(parseFloat).filter((n) => !isNaN(n));
         if (parts.length >= 4 && parts[2] > 0 && parts[3] > 0) {
-          return { width: parts[2], height: parts[3] };
+          return { width: Math.round(parts[2]), height: Math.round(parts[3]) };
         }
       }
 
@@ -217,42 +220,68 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
       try {
         const bbox = svgEl.getBBox();
         if (bbox.width > 0 && bbox.height > 0) {
-          return { width: bbox.width, height: bbox.height };
+          return { width: Math.round(bbox.width), height: Math.round(bbox.height) };
         }
       } catch {}
 
-      // 4. Try getBoundingClientRect relative to scale
-      const rect = svgEl.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        const curScale = scaleRef.current || 1;
-        return { width: rect.width / curScale, height: rect.height / curScale };
+      // 4. Try width and height attributes
+      const wAttr = parseFloat(svgEl.getAttribute('width') || '');
+      const hAttr = parseFloat(svgEl.getAttribute('height') || '');
+      if (!isNaN(wAttr) && !isNaN(hAttr) && wAttr > 0 && hAttr > 0) {
+        return { width: Math.round(wAttr), height: Math.round(hAttr) };
       }
     }
 
-    return { width: 800, height: 600 };
-  }, []);
+    // 5. Parse from svgContent string
+    if (svgContent) {
+      const viewBoxMatch = svgContent.match(/viewBox=["']\s*([^\s,"']+)\s+([^\s,"']+)\s+([^\s,"']+)\s+([^\s,"']+)\s*["']/i);
+      if (viewBoxMatch) {
+        const w = parseFloat(viewBoxMatch[3]);
+        const h = parseFloat(viewBoxMatch[4]);
+        if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
+          return { width: Math.round(w), height: Math.round(h) };
+        }
+      }
+    }
+
+    return dimensionsRef.current.width > 0 ? dimensionsRef.current : { width: 800, height: 600 };
+  }, [svgContent]);
+
+  // Keep diagramDimensions updated when SVG content loads
+  useEffect(() => {
+    if (svgContent) {
+      const dims = getDiagramDimensions();
+      setDiagramDimensions(dims);
+    }
+  }, [svgContent, getDiagramDimensions]);
 
   /**
    * Zooms inward or outward anchored strictly to the center of the diagram
    */
   const zoomFromCenter = useCallback((factor: number) => {
     if (!canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const viewWidth = rect.width;
-    const viewHeight = rect.height;
 
-    setScale((currentScale) => {
-      const newScale = Math.min(Math.max(currentScale * factor, 0.15), 6);
+    const curScale = scaleRef.current;
+    const curPan = panRef.current;
+    const dims = getDiagramDimensions();
 
-      // Symmetrical center formula: keeps diagram center fixed on screen
-      setPan((currentPan) => ({
-        x: currentPan.x + (viewWidth / 2) * (currentScale - newScale),
-        y: currentPan.y + (viewHeight / 2) * (currentScale - newScale)
-      }));
+    const newScale = Math.min(Math.max(curScale * factor, 0.05), 10);
+    if (newScale === curScale) return;
 
-      return newScale;
-    });
-  }, []);
+    // Current center of the diagram on screen:
+    const currentCenterX = curPan.x + (dims.width * curScale) / 2;
+    const currentCenterY = curPan.y + (dims.height * curScale) / 2;
+
+    // Anchor diagram center to current position on screen:
+    const newPanX = currentCenterX - (dims.width * newScale) / 2;
+    const newPanY = currentCenterY - (dims.height * newScale) / 2;
+
+    scaleRef.current = newScale;
+    panRef.current = { x: newPanX, y: newPanY };
+
+    setScale(newScale);
+    setPan({ x: newPanX, y: newPanY });
+  }, [getDiagramDimensions]);
 
   /**
    * Zoom In (+) anchored to the center of the diagram
@@ -269,15 +298,35 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
   };
 
   /**
-   * Reset (1:1) - restores scale to 100% and centers coordinates
+   * Reset (1:1) - restores scale to 100% (true size) and centers diagram in viewport
    */
   const handleResetZoom = useCallback(() => {
-    setScale(1);
-    setPan({ x: 0, y: 0 });
-  }, []);
+    if (!canvasRef.current) {
+      setScale(1);
+      setPan({ x: 0, y: 0 });
+      return;
+    }
+
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const viewWidth = canvasRect.width;
+    const viewHeight = canvasRect.height;
+
+    const dims = getDiagramDimensions();
+    setDiagramDimensions(dims);
+
+    const targetScale = 1;
+    const centerPanX = (viewWidth - dims.width) / 2;
+    const centerPanY = (viewHeight - dims.height) / 2;
+
+    scaleRef.current = targetScale;
+    panRef.current = { x: centerPanX, y: centerPanY };
+
+    setScale(targetScale);
+    setPan({ x: centerPanX, y: centerPanY });
+  }, [getDiagramDimensions]);
 
   /**
-   * Fit to Screen (Maximize) - automatically fits diagram to viewport and centers it
+   * Fit to Screen (Maximize) - fits the entire diagram inside the viewport with clean margins and centers it
    */
   const handleFitToScreen = useCallback(() => {
     if (!canvasRef.current) return;
@@ -288,22 +337,29 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
 
     if (viewWidth <= 0 || viewHeight <= 0) return;
 
-    const { width: diagWidth, height: diagHeight } = getDiagramDimensions();
+    const dims = getDiagramDimensions();
+    setDiagramDimensions(dims);
+    const diagWidth = dims.width;
+    const diagHeight = dims.height;
 
-    // 60px padding on each side so diagram does not touch borders
-    const padding = 60;
-    const availableWidth = Math.max(viewWidth - padding * 2, 100);
-    const availableHeight = Math.max(viewHeight - padding * 2, 100);
+    if (diagWidth <= 0 || diagHeight <= 0) return;
+
+    // 48px padding for breathing room
+    const padding = 48;
+    const availableWidth = Math.max(viewWidth - padding * 2, 50);
+    const availableHeight = Math.max(viewHeight - padding * 2, 50);
 
     const fitScale = Math.min(availableWidth / diagWidth, availableHeight / diagHeight);
-    // Clamp scale between 0.15 and 1.5 (avoiding distortion on small diagrams)
-    const targetScale = Math.min(Math.max(fitScale, 0.15), 1.5);
+    const targetScale = Math.min(Math.max(fitScale, 0.05), 5.0);
 
-    // Exact coordinate centering formula:
-    // screenCenterX = pan.x + (viewWidth / 2) * targetScale = viewWidth / 2
-    // => pan.x = (viewWidth / 2) * (1 - targetScale)
-    const centerPanX = (viewWidth / 2) * (1 - targetScale);
-    const centerPanY = (viewHeight / 2) * (1 - targetScale);
+    const screenWidth = diagWidth * targetScale;
+    const screenHeight = diagHeight * targetScale;
+
+    const centerPanX = (viewWidth - screenWidth) / 2;
+    const centerPanY = (viewHeight - screenHeight) / 2;
+
+    scaleRef.current = targetScale;
+    panRef.current = { x: centerPanX, y: centerPanY };
 
     setScale(targetScale);
     setPan({ x: centerPanX, y: centerPanY });
@@ -318,14 +374,14 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
         fittedDiagramIdRef.current = diagram.id;
         const timer = setTimeout(() => {
           handleFitToScreen();
-        }, 100);
+        }, 50);
         return () => clearTimeout(timer);
       }
     }
   }, [svgContent, loading, diagram?.id, handleFitToScreen]);
 
   /**
-   * Zoom anchored towards cursor position on mouse wheel
+   * Zoom anchored towards cursor position on mouse wheel (Focal Zoom)
    */
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -335,18 +391,23 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+    const curScale = scaleRef.current;
+    const curPan = panRef.current;
 
-    setScale((currentScale) => {
-      const newScale = Math.min(Math.max(currentScale * zoomFactor, 0.15), 6);
+    const zoomFactor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
+    const newScale = Math.min(Math.max(curScale * zoomFactor, 0.05), 10);
 
-      setPan((currentPan) => ({
-        x: mouseX - (mouseX - currentPan.x) * (newScale / currentScale),
-        y: mouseY - (mouseY - currentPan.y) * (newScale / currentScale)
-      }));
+    if (newScale === curScale) return;
 
-      return newScale;
-    });
+    // Focal Zoom: Keeps the exact point under cursor pinned on screen
+    const newPanX = mouseX - (mouseX - curPan.x) * (newScale / curScale);
+    const newPanY = mouseY - (mouseY - curPan.y) * (newScale / curScale);
+
+    scaleRef.current = newScale;
+    panRef.current = { x: newPanX, y: newPanY };
+
+    setScale(newScale);
+    setPan({ x: newPanX, y: newPanY });
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -612,16 +673,23 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
           ) : (
             <div
               style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
                 transformOrigin: '0 0',
-                transition: isDragging ? 'none' : 'transform 0.05s ease-out'
+                transition: isDragging ? 'none' : 'transform 0.08s ease-out',
+                pointerEvents: 'none'
               }}
-              className="absolute inset-0 flex items-center justify-center pointer-events-none p-12"
             >
               {svgContent ? (
                 <div
                   ref={svgWrapperRef}
-                  className="max-w-none max-h-none drop-shadow-2xl"
+                  style={{
+                    width: `${diagramDimensions.width}px`,
+                    height: `${diagramDimensions.height}px`,
+                  }}
+                  className="drop-shadow-2xl"
                   dangerouslySetInnerHTML={{
                     __html: svgContent
                   }}
