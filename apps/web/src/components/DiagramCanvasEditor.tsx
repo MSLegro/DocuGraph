@@ -6,6 +6,10 @@ import {
   ZoomOut,
   RotateCcw,
   Maximize,
+  Maximize2,
+  Minimize2,
+  Hand,
+  Palette,
   PanelLeftClose,
   PanelLeftOpen,
   Copy,
@@ -14,10 +18,12 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
-  Tag
+  ChevronDown
 } from 'lucide-react';
-import type { DiagramItem, DiagramContentResponse } from '../types';
+import type { DiagramItem, DiagramContentResponse, MermaidTheme, CanvasBgTheme } from '../types';
 import { ApiClient } from '../api/client';
+import { useTheme, CANVAS_BG_CONFIG } from '../context/ThemeContext';
+import { normalizeSvg } from '../utils/svg-utils';
 
 interface DiagramCanvasEditorProps {
   diagram: DiagramItem | null;
@@ -32,21 +38,34 @@ const MERMAID_SNIPPETS = [
   { label: '+ Subgraph', code: '  subgraph GroupName\n    S1[Service 1]\n  end\n' }
 ];
 
+const MERMAID_THEMES: Array<{ id: MermaidTheme; label: string }> = [
+  { id: 'dark', label: 'Mermaid Dark' },
+  { id: 'default', label: 'Mermaid Default' },
+  { id: 'neutral', label: 'Mermaid Neutral' },
+  { id: 'forest', label: 'Mermaid Forest' }
+];
+
 export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
   diagram,
   onClose,
   onSaved
 }) => {
+  const { canvasBg, setCanvasBg } = useTheme();
+
   const [title, setTitle] = useState('');
   const [code, setCode] = useState('');
   const [initialCode, setInitialCode] = useState('');
   const [initialTitle, setInitialTitle] = useState('');
   const [svgContent, setSvgContent] = useState('');
+  const [mermaidTheme, setMermaidTheme] = useState<MermaidTheme>('dark');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showBgSelector, setShowBgSelector] = useState(false);
+  const [isPanMode, setIsPanMode] = useState(false);
 
   // Pan & Zoom state
   const [scale, setScale] = useState(1);
@@ -70,7 +89,10 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
         setInitialTitle(data.meta.title);
         setCode(data.code);
         setInitialCode(data.code);
-        setSvgContent(data.svgContent);
+        setSvgContent(normalizeSvg(data.svgContent));
+        if (data.meta.theme) {
+          setMermaidTheme(data.meta.theme);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -99,7 +121,8 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
       diagram.id,
       title.trim(),
       code.trim(),
-      diagram.folderPath
+      diagram.folderPath,
+      mermaidTheme
     );
 
     setSaving(false);
@@ -108,14 +131,14 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
       setErrorMessage(res.error || 'Mermaid compilation failed.');
     } else {
       if (res.svgContent) {
-        setSvgContent(res.svgContent);
+        setSvgContent(normalizeSvg(res.svgContent));
       }
       setInitialTitle(title.trim());
       setInitialCode(code.trim());
       setErrorMessage(null);
       onSaved();
     }
-  }, [diagram, saving, title, code, onSaved]);
+  }, [diagram, saving, title, code, mermaidTheme, onSaved]);
 
   // Keyboard shortcut Ctrl+S / Cmd+S
   useEffect(() => {
@@ -125,7 +148,11 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
         handleSave();
       }
       if (e.key === 'Escape') {
-        onClose();
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          onClose();
+        }
       }
     };
 
@@ -133,25 +160,65 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, onClose]);
 
-  // Pan & Zoom controls
-  const handleZoomIn = () => setScale((prev) => Math.min(prev * 1.25, 5));
-  const handleZoomOut = () => setScale((prev) => Math.max(prev / 1.25, 0.2));
+  // Fullscreen listener
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  // Zoom Controls with cursor anchor
+  const handleZoomIn = () => {
+    setScale((prev) => Math.min(prev * 1.25, 6));
+  };
+
+  const handleZoomOut = () => {
+    setScale((prev) => Math.max(prev / 1.25, 0.15));
+  };
+
   const handleResetZoom = () => {
     setScale(1);
     setPan({ x: 0, y: 0 });
   };
 
+  const handleFitToScreen = () => {
+    setScale(0.85);
+    setPan({ x: 0, y: 0 });
+  };
+
+  /**
+   * Zoom anchored towards cursor position
+   */
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-    setScale((prev) => {
-      const next = prev * zoomFactor;
-      return Math.min(Math.max(next, 0.2), 5);
-    });
+    if (!canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+    const newScale = Math.min(Math.max(scale * zoomFactor, 0.15), 6);
+
+    // Pivot calculation so point under cursor stays fixed
+    const newPanX = mouseX - (mouseX - pan.x) * (newScale / scale);
+    const newPanY = mouseY - (mouseY - pan.y) * (newScale / scale);
+
+    setScale(newScale);
+    setPan({ x: newPanX, y: newPanY });
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Only pan on left click or middle click
     if (e.button === 0 || e.button === 1) {
       setIsDragging(true);
       dragStartRef.current = {
@@ -202,6 +269,8 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
 
   if (!diagram) return null;
 
+  const currentBgConfig = CANVAS_BG_CONFIG[canvasBg] || CANVAS_BG_CONFIG['dark-grid'];
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-dark-base text-dark-text animate-in fade-in duration-150">
       {/* Top Application Bar */}
@@ -240,6 +309,20 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          {/* Mermaid Theme Selector */}
+          <select
+            value={mermaidTheme}
+            onChange={(e) => setMermaidTheme(e.target.value as MermaidTheme)}
+            className="bg-dark-base border border-dark-border text-xs text-dark-text rounded-lg px-2.5 py-1.5 focus:border-brand-primary outline-none"
+            title="Mermaid Rendering Theme"
+          >
+            {MERMAID_THEMES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+
           {/* Copy MMD */}
           <button
             type="button"
@@ -261,7 +344,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             title="Download vector SVG"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Download SVG</span>
+            <span>Download</span>
           </button>
 
           {/* Save & Recompile */}
@@ -371,8 +454,8 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          className={`flex-1 relative overflow-hidden bg-diagram-grid bg-dark-base select-none ${
-            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          className={`flex-1 relative overflow-hidden select-none transition-colors duration-200 ${currentBgConfig.className} ${
+            isDragging ? 'cursor-grabbing' : isPanMode ? 'cursor-grab' : 'cursor-default'
           }`}
         >
           {loading ? (
@@ -393,10 +476,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
                 <div
                   className="max-w-none max-h-none drop-shadow-2xl"
                   dangerouslySetInnerHTML={{
-                    __html: svgContent.replace(
-                      /<svg([^>]+)>/,
-                      '<svg$1 style="max-width: 100%; max-height: 100%; width: auto; height: auto;">'
-                    )
+                    __html: svgContent
                   }}
                 />
               ) : (
@@ -407,8 +487,23 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             </div>
           )}
 
-          {/* Floating Canvas Controls */}
+          {/* Floating Canvas Controls Toolbar */}
           <div className="absolute bottom-6 right-6 z-30 flex items-center gap-1.5 bg-dark-card/90 backdrop-blur-md border border-dark-border p-1.5 rounded-2xl shadow-2xl">
+            {/* Pan / Hand Mode Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsPanMode(!isPanMode)}
+              className={`p-2 rounded-xl transition-colors ${
+                isPanMode ? 'bg-brand-primary text-white' : 'text-dark-muted hover:text-white hover:bg-dark-hover'
+              }`}
+              title="Pan Tool"
+            >
+              <Hand className="w-4 h-4" />
+            </button>
+
+            <div className="w-[1px] h-4 bg-dark-border mx-0.5" />
+
+            {/* Zoom Out */}
             <button
               type="button"
               onClick={handleZoomOut}
@@ -418,10 +513,12 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               <ZoomOut className="w-4 h-4" />
             </button>
 
+            {/* Zoom Percentage */}
             <span className="px-2 text-xs font-mono font-medium text-white min-w-[50px] text-center">
               {Math.round(scale * 100)}%
             </span>
 
+            {/* Zoom In */}
             <button
               type="button"
               onClick={handleZoomIn}
@@ -431,8 +528,9 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               <ZoomIn className="w-4 h-4" />
             </button>
 
-            <div className="w-[1px] h-4 bg-dark-border mx-1" />
+            <div className="w-[1px] h-4 bg-dark-border mx-0.5" />
 
+            {/* Reset 1:1 */}
             <button
               type="button"
               onClick={handleResetZoom}
@@ -441,13 +539,75 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             >
               <RotateCcw className="w-4 h-4" />
             </button>
+
+            {/* Fit to View */}
+            <button
+              type="button"
+              onClick={handleFitToScreen}
+              className="p-2 rounded-xl text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
+              title="Fit to Screen"
+            >
+              <Maximize className="w-4 h-4" />
+            </button>
+
+            <div className="w-[1px] h-4 bg-dark-border mx-0.5" />
+
+            {/* Fullscreen Toggle */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="p-2 rounded-xl text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
+              title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+
+            <div className="w-[1px] h-4 bg-dark-border mx-0.5" />
+
+            {/* Canvas Background Contrast Selector */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowBgSelector(!showBgSelector)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
+                title="Change Canvas Background for Contrast"
+              >
+                <Palette className="w-4 h-4" />
+                <span className="hidden sm:inline">{currentBgConfig.label}</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+
+              {showBgSelector && (
+                <div className="absolute bottom-12 right-0 w-44 rounded-xl bg-dark-card border border-dark-border shadow-2xl p-1.5 flex flex-col gap-1 z-40">
+                  <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-dark-muted">
+                    Canvas Contrast
+                  </div>
+                  {Object.entries(CANVAS_BG_CONFIG).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setCanvasBg(key as CanvasBgTheme);
+                        setShowBgSelector(false);
+                      }}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-left transition-colors ${
+                        canvasBg === key ? 'bg-brand-primary text-white' : 'text-dark-text hover:bg-dark-hover'
+                      }`}
+                    >
+                      <span className={`w-3 h-3 rounded-full border border-dark-border shrink-0 ${cfg.previewBg}`} />
+                      <span>{cfg.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Help navigation hint */}
           <div className="absolute bottom-6 left-6 z-30 hidden lg:flex items-center gap-2 text-[11px] text-dark-muted/80 bg-dark-card/75 backdrop-blur px-3 py-1.5 rounded-xl border border-dark-border/60 pointer-events-none">
             <span>Drag to Pan</span>
             <span>•</span>
-            <span>Scroll wheel to Zoom</span>
+            <span>Scroll wheel zooms towards cursor</span>
           </div>
         </main>
       </div>

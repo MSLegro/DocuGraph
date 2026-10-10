@@ -8,20 +8,25 @@
 ## 🌟 Key Features
 
 - **🔒 100% Local & Offline First:** Zero external rendering API calls, zero rate limits, and zero data leakage. All diagram compilations run on local hardware through a sandboxed Chromium instance.
-- **⚡ Interactive Full-Screen Canvas Editor:**
-  - **Pan & Zoom Navigation:** Smooth mouse drag (`pan`) and scroll wheel zoom (`scale`) across a technical grid canvas.
-  - **Floating Canvas HUD:** Instant Zoom In, Zoom Out, percentage indicator, and 1:1 View Reset.
+- **🎨 Dual Independent Theming & Contrast Presets:**
+  - **App Workspace Themes:** Switch between **Dark Tokyo** (`#12131C` / `#1A1B26`), **Dark Slate**, and **Light Slate**.
+  - **Canvas Contrast Presets:** Instant background toggles for high-contrast viewing: **Dark Grid**, **Light Grid**, **Blueprint**, **Neutral Zinc**, **Pure White**, and **Pure Black**.
+  - **Mermaid Compiler Themes:** Choose between `dark`, `default`, `neutral`, `forest`, and `base` directly when creating or updating diagrams.
+- **⚡ Advanced Canvas Editor & Navigation:**
+  - **🎯 Cursor-Anchored Focal Zoom:** Scroll wheel zoom zooms into/away from the exact position of your mouse cursor (Figma / Miro style).
+  - **🛠️ Canvas Toolset:** Interactive controls for **Pan tool (Hand)**, **Zoom In / Out**, **Reset (1:1)**, **Fit to Screen**, and **Native Fullscreen**.
   - **Live Mermaid Editor:** Real-time syntax editing with code snippets (`+ Node`, `+ Decision`, `+ Database`, `+ Subgraph`).
-  - **Hot Compile Shortcut:** Save & recompile instantly with <kbd>Ctrl + S</kbd> / <kbd>Cmd + S</kbd> while preserving your canvas zoom and pan position.
-- **👁️ Quick Preview & Inspection:** Fast modal preview for immediate inspection, code copying, and SVG asset downloading without opening the full editor.
-- **🛠️ Full Diagram Operations:** Rename titles, edit Mermaid code, or permanently delete diagrams with a secure confirmation dialog.
-- **📁 Hierarchical Folder Navigation:** Organize technical architecture in nested directories with interactive breadcrumbs and diagram counters.
+  - **Hot Compile Shortcut:** Save & recompile instantly with <kbd>Ctrl + S</kbd> / <kbd>Cmd + S</kbd> while preserving canvas position.
+- **📁 Semantic Folder Icons & Folder Operations:**
+  - **Material Icon Theme Integration:** Folders automatically receive tailored icons & badges based on folder names (`api`, `infra`, `db`, `auth`, `docs`, `web`, `test`, `cloud`, etc.) in the grid and breadcrumbs.
+  - **Folder Management:** Full support for **Rename Folder** and **Delete Folder** (with non-empty item warnings).
+- **👁️ Tight Bounding Box Previews:** Clean SVG normalization that eliminates excessive white space and fixed width limitations for sharp, pixel-perfect previews.
 - **🛡️ Resource Protection (p-limit):** Concurrency queue limiting simultaneous Chromium instances to prevent CPU and RAM spikes.
 - **🎯 Clean Syntax Error Filtering:** Chromium stack traces are stripped, isolating readable Mermaid parser errors and reporting them as HTTP `422 Unprocessable Entity`.
 - **📂 Structured Local File Triad:** Every diagram is stored as a synchronized triad in `/storage/projects/default/...`:
   1. `<id>.mmd` — Source Mermaid code.
   2. `<id>.svg` — Transparent compiled vector graphic.
-  3. `<id>.meta.json` — Metadata (`title`, `diagramType`, `createdAt`, `updatedAt`).
+  3. `<id>.meta.json` — Metadata (`title`, `diagramType`, `theme`, `createdAt`, `updatedAt`).
 
 ---
 
@@ -118,11 +123,13 @@ pnpm build
 |---|---|---|---|
 | `GET` | `/api/health` | Health check endpoint | `200` |
 | `GET` | `/api/tree?folder=<path>` | Lists subfolders and diagrams in the requested directory | `200`, `500` |
-| `POST` | `/api/diagrams` | Compiles Mermaid code and creates the triad (`.mmd`, `.svg`, `.meta.json`) | `201`, `400`, `422` |
-| `PUT` | `/api/diagrams/:id` | Updates diagram title/code, recompiles SVG and updates metadata | `200`, `400`, `422` |
+| `POST` | `/api/diagrams` | Compiles Mermaid code with theme and creates triad (`.mmd`, `.svg`, `.meta.json`) | `201`, `400`, `422` |
+| `PUT` | `/api/diagrams/:id` | Updates diagram title, code, theme, recompiles SVG and updates metadata | `200`, `400`, `422` |
 | `DELETE` | `/api/diagrams/:id?folder=<path>` | Permanently deletes diagram triad from filesystem | `200`, `404` |
 | `GET` | `/api/diagrams/:id/content?folder=<path>` | Retrieves `.mmd` source, `.svg` vector content and metadata | `200`, `404` |
 | `POST` | `/api/folders` | Creates a new physical directory in the active path | `201`, `400` |
+| `PUT` | `/api/folders/rename` | Renames an existing folder and migrates stored diagrams | `200`, `400`, `404` |
+| `DELETE` | `/api/folders?folder=<path>` | Permanently deletes folder and all diagrams within | `200`, `400`, `404` |
 
 ---
 
@@ -132,9 +139,11 @@ pnpm build
 |---|---|
 | <kbd>Ctrl</kbd> + <kbd>S</kbd> / <kbd>Cmd</kbd> + <kbd>S</kbd> | Save and recompile current diagram in Canvas Editor |
 | <kbd>Esc</kbd> | Close Canvas Editor or Preview Modal |
-| **Mouse Drag** | Pan the canvas freely across the diagram |
-| **Scroll Wheel** | Zoom in and zoom out of the vector canvas |
-| **Reset Button** | Reset canvas zoom to 100% (1:1) and center coordinates |
+| **Scroll Wheel** | Zoom towards cursor coordinate (Figma / Miro focal zoom) |
+| **Mouse Drag (Pan mode or Spacebar)** | Pan canvas freely across diagram workspace |
+| **Fit to Screen button** | Automatically scale & center diagram to fill canvas viewport |
+| **Fullscreen button** | Toggle browser fullscreen for focused diagram architecture sessions |
+| **Theme Selector** | Switch workspace theme (Tokyo, Slate, Light) and Canvas contrast presets |
 
 ---
 

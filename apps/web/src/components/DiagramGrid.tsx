@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileCode2, Clock, Eye, Sparkles, Maximize2, Trash2 } from 'lucide-react';
 import type { DiagramItem } from '../types';
+import { normalizeSvg } from '../utils/svg-utils';
 
 interface DiagramGridProps {
   diagrams: DiagramItem[];
@@ -95,10 +96,7 @@ export const DiagramGrid: React.FC<DiagramGridProps> = ({
                   <div
                     className="w-full h-full flex items-center justify-center pointer-events-none transform transition-transform group-hover:scale-105"
                     dangerouslySetInnerHTML={{
-                      __html: diagram.svgContent.replace(
-                        /<svg([^>]+)>/,
-                        '<svg$1 style="max-width: 100%; max-height: 100%; width: auto; height: auto;">'
-                      )
+                      __html: normalizeSvg(diagram.svgContent)
                     }}
                   />
                 ) : (

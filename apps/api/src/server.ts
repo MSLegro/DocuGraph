@@ -58,6 +58,7 @@ export async function buildServer() {
       title?: string;
       code?: string;
       folderPath?: string;
+      theme?: import('@docugraph/core').MermaidTheme;
     };
 
     if (!body || !body.title || !body.code) {
@@ -70,7 +71,8 @@ export async function buildServer() {
       const result = await diagramService.compileAndSave({
         title: body.title,
         code: body.code,
-        folderPath: body.folderPath || ''
+        folderPath: body.folderPath || '',
+        theme: body.theme
       });
 
       if (!result.success) {
@@ -125,6 +127,62 @@ export async function buildServer() {
     }
   });
 
+  // PUT /api/folders/rename
+  server.put('/api/folders/rename', async (request, reply) => {
+    const body = request.body as {
+      folderPath?: string;
+      newName?: string;
+    };
+
+    if (!body || !body.folderPath || !body.newName) {
+      return reply.status(400).send({
+        error: 'Both "folderPath" and "newName" are required.'
+      });
+    }
+
+    try {
+      const newPath = await fsExplorer.renameFolder(body.folderPath, body.newName);
+      return reply.status(200).send({
+        success: true,
+        folderPath: newPath
+      });
+    } catch (err: any) {
+      server.log.error(err);
+      return reply.status(400).send({
+        error: err.message || 'Failed to rename folder.'
+      });
+    }
+  });
+
+  // DELETE /api/folders
+  server.delete('/api/folders', async (request, reply) => {
+    const query = request.query as { folder?: string };
+    if (!query || !query.folder) {
+      return reply.status(400).send({
+        error: '"folder" query parameter is required.'
+      });
+    }
+
+    try {
+      const deleted = await fsExplorer.deleteFolder(query.folder);
+      if (!deleted) {
+        return reply.status(404).send({
+          success: false,
+          error: `Folder "${query.folder}" not found.`
+        });
+      }
+      return reply.status(200).send({
+        success: true,
+        message: 'Folder deleted successfully.'
+      });
+    } catch (err: any) {
+      server.log.error(err);
+      return reply.status(400).send({
+        error: err.message || 'Failed to delete folder.'
+      });
+    }
+  });
+
   // GET /api/diagrams/:id/content?folder=<path>
   server.get('/api/diagrams/:id/content', async (request, reply) => {
     const params = request.params as { id: string };
@@ -158,6 +216,7 @@ export async function buildServer() {
       title?: string;
       code?: string;
       folderPath?: string;
+      theme?: import('@docugraph/core').MermaidTheme;
     };
 
     if (!body || !body.title || !body.code) {
@@ -172,7 +231,8 @@ export async function buildServer() {
         params.id,
         {
           title: body.title,
-          code: body.code
+          code: body.code,
+          theme: body.theme
         }
       );
 

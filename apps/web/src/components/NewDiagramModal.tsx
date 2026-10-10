@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { X, Play, Loader2, AlertCircle, FileCode, Sparkles, Folder } from 'lucide-react';
+import { X, Play, Loader2, AlertCircle, FileCode, Sparkles, Folder, Palette } from 'lucide-react';
+import type { MermaidTheme } from '../types';
 
 interface NewDiagramModalProps {
   isOpen: boolean;
   currentFolder: string;
   onClose: () => void;
-  onSubmit: (title: string, code: string, folderPath: string) => Promise<string | null>; // returns error message if failed
+  onSubmit: (title: string, code: string, folderPath: string, theme?: MermaidTheme) => Promise<string | null>;
 }
 
 const TEMPLATES = [
@@ -64,6 +65,13 @@ const TEMPLATES = [
   }
 ];
 
+const THEME_OPTIONS: Array<{ id: MermaidTheme; label: string }> = [
+  { id: 'dark', label: 'Dark (Recommended)' },
+  { id: 'default', label: 'Default' },
+  { id: 'neutral', label: 'Neutral' },
+  { id: 'forest', label: 'Forest' }
+];
+
 export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
   isOpen,
   currentFolder,
@@ -71,6 +79,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
   onSubmit
 }) => {
   const [title, setTitle] = useState('');
+  const [theme, setTheme] = useState<MermaidTheme>('dark');
   const [code, setCode] = useState(TEMPLATES[0].code);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -84,7 +93,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
     setLoading(true);
     setErrorMessage(null);
 
-    const error = await onSubmit(title.trim(), code.trim(), currentFolder);
+    const error = await onSubmit(title.trim(), code.trim(), currentFolder, theme);
     setLoading(false);
 
     if (error) {
@@ -92,6 +101,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
     } else {
       // Clear and close
       setTitle('');
+      setTheme('dark');
       setCode(TEMPLATES[0].code);
       setErrorMessage(null);
       onClose();
@@ -130,19 +140,39 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
 
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-y-auto p-6 gap-5">
-          {/* Title Input */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2">
-              Diagram Title
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Authentication Flow Architecture"
-              className="w-full px-4 py-2.5 rounded-xl bg-dark-base border border-dark-border text-white placeholder-dark-muted/60 text-sm focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors"
-            />
+          {/* Title and Theme row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2">
+                Diagram Title
+              </label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Authentication Flow Architecture"
+                className="w-full px-4 py-2.5 rounded-xl bg-dark-base border border-dark-border text-white placeholder-dark-muted/60 text-sm focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2 flex items-center gap-1.5">
+                <Palette className="w-3.5 h-3.5" />
+                Mermaid Theme
+              </label>
+              <select
+                value={theme}
+                onChange={(e) => setTheme(e.target.value as MermaidTheme)}
+                className="w-full px-3 py-2.5 rounded-xl bg-dark-base border border-dark-border text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+              >
+                {THEME_OPTIONS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Template Quick Selection */}

@@ -40,6 +40,59 @@ export class FileSystemExplorer {
   }
 
   /**
+   * Renames an existing folder safely within storage root.
+   */
+  public async renameFolder(currentRelPath: string, newFolderName: string): Promise<string> {
+    const safeCurrent = sanitizeFolderPath(currentRelPath);
+    if (!safeCurrent) {
+      throw new Error('Cannot rename root directory');
+    }
+
+    const cleanNewName = newFolderName
+      .trim()
+      .replace(/[\/\\:*?"<>|]/g, '-')
+      .replace(/^\.+/, '');
+
+    if (!cleanNewName) {
+      throw new Error('Invalid folder name');
+    }
+
+    const sourceAbs = path.join(this.storageRoot, safeCurrent);
+    if (!existsSync.existsSync(sourceAbs)) {
+      throw new Error(`Folder "${safeCurrent}" does not exist`);
+    }
+
+    const parentRel = path.dirname(safeCurrent);
+    const safeParentRel = parentRel === '.' ? '' : sanitizeFolderPath(parentRel);
+    const targetAbs = path.join(this.storageRoot, safeParentRel, cleanNewName);
+
+    if (existsSync.existsSync(targetAbs)) {
+      throw new Error(`A folder named "${cleanNewName}" already exists`);
+    }
+
+    await fs.rename(sourceAbs, targetAbs);
+    return safeParentRel ? `${safeParentRel}/${cleanNewName}` : cleanNewName;
+  }
+
+  /**
+   * Deletes a folder recursively from storage root.
+   */
+  public async deleteFolder(relativeFolderPath: string): Promise<boolean> {
+    const safeRel = sanitizeFolderPath(relativeFolderPath);
+    if (!safeRel) {
+      throw new Error('Cannot delete root directory');
+    }
+
+    const targetAbs = path.join(this.storageRoot, safeRel);
+    if (!existsSync.existsSync(targetAbs)) {
+      return false;
+    }
+
+    await fs.rm(targetAbs, { recursive: true, force: true });
+    return true;
+  }
+
+  /**
    * Lists folders and diagrams inside a relative folder.
    */
   public async listFilesAndFolders(relativePath: string = ''): Promise<TreeResponse> {
@@ -95,6 +148,7 @@ export class FileSystemExplorer {
             title: meta.title || id,
             folderPath: safeRel,
             diagramType: meta.diagramType || 'flowchart',
+            theme: meta.theme || 'dark',
             createdAt: meta.createdAt || new Date().toISOString(),
             updatedAt: meta.updatedAt || new Date().toISOString(),
             svgContent

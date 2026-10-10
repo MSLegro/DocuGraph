@@ -1,5 +1,8 @@
 import React from 'react';
-import { Network, Plus, FolderPlus, ChevronRight, Home } from 'lucide-react';
+import { Network, Plus, FolderPlus, ChevronRight, Home, Sun, Moon, Palette } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { getFolderTheme } from '../utils/folder-icons';
+import type { AppTheme } from '../types';
 
 interface TopBarProps {
   breadcrumbs: Array<{ name: string; path: string }>;
@@ -8,12 +11,20 @@ interface TopBarProps {
   onOpenNewFolder: () => void;
 }
 
+const THEME_OPTIONS: Array<{ id: AppTheme; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  { id: 'dark-tokyo', label: 'Dark Tokyo', icon: Moon },
+  { id: 'dark-slate', label: 'Dark Slate', icon: Palette },
+  { id: 'light-slate', label: 'Light Slate', icon: Sun }
+];
+
 export const TopBar: React.FC<TopBarProps> = ({
   breadcrumbs,
   onNavigateFolder,
   onOpenNewDiagram,
   onOpenNewFolder
 }) => {
+  const { appTheme, setAppTheme } = useTheme();
+
   return (
     <header className="sticky top-0 z-30 bg-dark-card/90 backdrop-blur-md border-b border-dark-border px-6 py-3.5">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -39,23 +50,26 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           <div className="h-5 w-[1px] bg-dark-border mx-2 hidden sm:block" />
 
-          {/* Breadcrumb path */}
+          {/* Breadcrumb path with dynamic folder icons */}
           <nav className="flex items-center text-sm font-medium text-dark-muted flex-wrap gap-1">
             {breadcrumbs.map((crumb, idx) => {
               const isLast = idx === breadcrumbs.length - 1;
+              const folderTheme = idx === 0 ? null : getFolderTheme(crumb.name);
+              const CrumbIcon = idx === 0 ? Home : folderTheme?.icon || Home;
+
               return (
                 <React.Fragment key={crumb.path || 'root'}>
                   {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-dark-muted/60" />}
                   <button
                     type="button"
                     onClick={() => onNavigateFolder(crumb.path)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${
                       isLast
                         ? 'text-white bg-dark-hover font-semibold'
                         : 'hover:text-white hover:bg-dark-hover/50'
                     }`}
                   >
-                    {idx === 0 ? <Home className="w-3.5 h-3.5" /> : null}
+                    <CrumbIcon className={`w-3.5 h-3.5 ${folderTheme ? folderTheme.colorClass : ''}`} />
                     <span>{crumb.name}</span>
                   </button>
                 </React.Fragment>
@@ -64,8 +78,34 @@ export const TopBar: React.FC<TopBarProps> = ({
           </nav>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2.5 self-end md:self-auto">
+        {/* Action Buttons & Theme Selector */}
+        <div className="flex items-center gap-2.5 self-end md:self-auto flex-wrap">
+          {/* App Theme Selector */}
+          <div className="flex items-center bg-dark-base border border-dark-border rounded-xl p-1 text-xs">
+            {THEME_OPTIONS.map((theme) => {
+              const Icon = theme.icon;
+              const isActive = appTheme === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  type="button"
+                  onClick={() => setAppTheme(theme.id)}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors font-medium ${
+                    isActive
+                      ? 'bg-dark-card text-white shadow-sm'
+                      : 'text-dark-muted hover:text-white'
+                  }`}
+                  title={`Switch to ${theme.label}`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{theme.label.split(' ')[1]}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="h-5 w-[1px] bg-dark-border mx-1 hidden sm:block" />
+
           <button
             type="button"
             onClick={onOpenNewFolder}

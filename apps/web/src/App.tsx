@@ -7,8 +7,10 @@ import { NewFolderModal } from './components/NewFolderModal';
 import { DiagramViewerModal } from './components/DiagramViewerModal';
 import { DiagramCanvasEditor } from './components/DiagramCanvasEditor';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import { RenameFolderModal } from './components/RenameFolderModal';
+import { DeleteFolderModal } from './components/DeleteFolderModal';
 import { ApiClient } from './api/client';
-import type { TreeResponse, DiagramItem } from './types';
+import type { TreeResponse, DiagramItem, FolderItem, MermaidTheme } from './types';
 import { Loader2, RefreshCw } from 'lucide-react';
 
 export function App() {
@@ -23,6 +25,8 @@ export function App() {
   const [selectedDiagram, setSelectedDiagram] = useState<DiagramItem | null>(null);
   const [canvasDiagram, setCanvasDiagram] = useState<DiagramItem | null>(null);
   const [diagramToDelete, setDiagramToDelete] = useState<DiagramItem | null>(null);
+  const [folderToRename, setFolderToRename] = useState<FolderItem | null>(null);
+  const [folderToDelete, setFolderToDelete] = useState<FolderItem | null>(null);
 
   const loadTree = useCallback(async (folder: string) => {
     setLoading(true);
@@ -49,9 +53,10 @@ export function App() {
   const handleCreateDiagram = async (
     title: string,
     code: string,
-    folderPath: string
+    folderPath: string,
+    theme?: MermaidTheme
   ): Promise<string | null> => {
-    const res = await ApiClient.createDiagram(title, code, folderPath);
+    const res = await ApiClient.createDiagram(title, code, folderPath, theme);
     if (!res.success) {
       return res.error || 'Mermaid compilation failed.';
     }
@@ -67,6 +72,29 @@ export function App() {
       return null;
     } catch (err: any) {
       return err.message || 'Failed to create folder';
+    }
+  };
+
+  const handleRenameFolder = async (folderPath: string, newName: string): Promise<string | null> => {
+    try {
+      await ApiClient.renameFolder(folderPath, newName);
+      await loadTree(currentFolder);
+      return null;
+    } catch (err: any) {
+      return err.message || 'Failed to rename folder';
+    }
+  };
+
+  const handleDeleteFolderConfirm = async (folder: FolderItem) => {
+    try {
+      await ApiClient.deleteFolder(folder.relativePath);
+      if (currentFolder === folder.relativePath || currentFolder.startsWith(folder.relativePath + '/')) {
+        setCurrentFolder('');
+      } else {
+        await loadTree(currentFolder);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete folder');
     }
   };
 
@@ -121,6 +149,8 @@ export function App() {
             <FolderGrid
               folders={treeData?.folders || []}
               onSelectFolder={handleNavigateFolder}
+              onRenameFolder={(folder) => setFolderToRename(folder)}
+              onDeleteFolder={(folder) => setFolderToDelete(folder)}
             />
 
             {/* Diagrams Grid */}
@@ -176,6 +206,20 @@ export function App() {
         diagram={diagramToDelete}
         onClose={() => setDiagramToDelete(null)}
         onConfirm={handleDeleteDiagramConfirm}
+      />
+
+      {/* Rename Folder Modal */}
+      <RenameFolderModal
+        folder={folderToRename}
+        onClose={() => setFolderToRename(null)}
+        onSubmit={handleRenameFolder}
+      />
+
+      {/* Delete Folder Modal */}
+      <DeleteFolderModal
+        folder={folderToDelete}
+        onClose={() => setFolderToDelete(null)}
+        onConfirm={handleDeleteFolderConfirm}
       />
     </div>
   );

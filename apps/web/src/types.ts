@@ -15,11 +15,24 @@ export type DiagramType =
   | 'block'
   | 'unknown';
 
+export type MermaidTheme = 'dark' | 'default' | 'neutral' | 'forest' | 'base';
+
+export type CanvasBgTheme =
+  | 'dark-grid'
+  | 'light-grid'
+  | 'blueprint'
+  | 'neutral'
+  | 'pure-white'
+  | 'pure-black';
+
+export type AppTheme = 'dark-tokyo' | 'dark-slate' | 'light-slate';
+
 export interface DiagramMeta {
   id: string;
   title: string;
   folderPath: string;
   diagramType: DiagramType;
+  theme?: MermaidTheme;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +42,7 @@ export interface DiagramItem {
   title: string;
   folderPath: string;
   diagramType: DiagramType;
+  theme?: MermaidTheme;
   createdAt: string;
   updatedAt: string;
   svgContent?: string;

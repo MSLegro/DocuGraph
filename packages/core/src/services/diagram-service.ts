@@ -72,29 +72,31 @@ export class DiagramService {
     const svgPath = path.join(targetDir, `${id}.svg`);
     const metaPath = path.join(targetDir, `${id}.meta.json`);
 
+    // Check if existing metadata exists to preserve createdAt or theme
+    let createdAt = new Date().toISOString();
+    let theme = options.theme || 'dark';
+    if (existsSync.existsSync(metaPath)) {
+      try {
+        const oldMetaRaw = await fs.readFile(metaPath, 'utf-8');
+        const oldMeta = JSON.parse(oldMetaRaw) as DiagramMeta;
+        if (oldMeta.createdAt) createdAt = oldMeta.createdAt;
+        if (!options.theme && oldMeta.theme) theme = oldMeta.theme;
+      } catch {
+        // ignore corrupted old meta
+      }
+    }
+
     // Write source .mmd first
     await fs.writeFile(mmdPath, code, 'utf-8');
 
     // Run local mmdc compilation inside concurrency queue
     try {
       await runWithQueue(async () => {
-        await this.executeMmdc(mmdPath, svgPath);
+        await this.executeMmdc(mmdPath, svgPath, theme);
       });
 
       // Read compiled SVG
       const svgContent = await fs.readFile(svgPath, 'utf-8');
-
-      // Check if existing metadata exists
-      let createdAt = new Date().toISOString();
-      if (existsSync.existsSync(metaPath)) {
-        try {
-          const oldMetaRaw = await fs.readFile(metaPath, 'utf-8');
-          const oldMeta = JSON.parse(oldMetaRaw) as DiagramMeta;
-          if (oldMeta.createdAt) createdAt = oldMeta.createdAt;
-        } catch {
-          // ignore corrupted old meta
-        }
-      }
 
       const diagramType = detectDiagramType(code);
       const meta: DiagramMeta = {
@@ -102,6 +104,7 @@ export class DiagramService {
         title: title.trim(),
         folderPath: safeRelFolder,
         diagramType,
+        theme,
         createdAt,
         updatedAt: new Date().toISOString()
       };
@@ -137,9 +140,9 @@ export class DiagramService {
   }
 
   /**
-   * Executes local mmdc command.
+   * Executes local mmdc command with custom theme.
    */
-  private async executeMmdc(inputFile: string, outputFile: string): Promise<void> {
+  private async executeMmdc(inputFile: string, outputFile: string, theme: string = 'dark'): Promise<void> {
     const root = findMonorepoRoot();
     
     // Check local node_modules/.bin path for mmdc
@@ -157,7 +160,7 @@ export class DiagramService {
       commandExecutable = `"${localBin}"`;
     }
 
-    const cmd = `${commandExecutable} -i "${inputFile}" -o "${outputFile}" -e svg -b transparent -p "${this.puppeteerConfigPath}"`;
+    const cmd = `${commandExecutable} -i "${inputFile}" -o "${outputFile}" -t "${theme}" -e svg -b transparent -p "${this.puppeteerConfigPath}"`;
 
     await execAsync(cmd, {
       cwd: root,
@@ -228,18 +231,20 @@ export class DiagramService {
   public async updateDiagram(
     folderPath: string,
     currentId: string,
-    options: { title: string; code: string }
+    options: { title: string; code: string; theme?: import('../types.js').MermaidTheme }
   ): Promise<CompileResult> {
     const safeRel = sanitizeFolderPath(folderPath);
     const targetDir = this.resolveTargetDir(safeRel);
     const currentMetaPath = path.join(targetDir, `${currentId}.meta.json`);
 
     let originalCreatedAt = new Date().toISOString();
+    let currentTheme: import('../types.js').MermaidTheme | undefined = options.theme;
     if (existsSync.existsSync(currentMetaPath)) {
       try {
         const oldMetaRaw = await fs.readFile(currentMetaPath, 'utf-8');
         const oldMeta = JSON.parse(oldMetaRaw) as DiagramMeta;
         if (oldMeta.createdAt) originalCreatedAt = oldMeta.createdAt;
+        if (!currentTheme && oldMeta.theme) currentTheme = oldMeta.theme;
       } catch {
         // ignore
       }
@@ -251,7 +256,8 @@ export class DiagramService {
     const result = await this.compileAndSave({
       title: options.title,
       code: options.code,
-      folderPath
+      folderPath,
+      theme: currentTheme
     });
 
     if (!result.success) {

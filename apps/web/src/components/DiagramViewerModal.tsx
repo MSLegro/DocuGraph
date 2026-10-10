@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Download, Code2, Eye, Calendar, Tag, Loader2, Maximize2, Trash2 } from 'lucide-react';
-import type { DiagramItem, DiagramContentResponse } from '../types';
+import {
+  X,
+  Copy,
+  Check,
+  Download,
+  Code2,
+  Eye,
+  Calendar,
+  Tag,
+  Loader2,
+  Maximize2,
+  Trash2,
+  Palette,
+  ChevronDown
+} from 'lucide-react';
+import type { DiagramItem, DiagramContentResponse, CanvasBgTheme } from '../types';
 import { ApiClient } from '../api/client';
+import { useTheme, CANVAS_BG_CONFIG } from '../context/ThemeContext';
+import { normalizeSvg } from '../utils/svg-utils';
 
 interface DiagramViewerModalProps {
   diagram: DiagramItem | null;
@@ -16,10 +32,13 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
   onOpenCanvas,
   onDelete
 }) => {
+  const { canvasBg, setCanvasBg } = useTheme();
+
   const [activeTab, setActiveTab] = useState<'svg' | 'code'>('svg');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<DiagramContentResponse | null>(null);
+  const [showBgSelector, setShowBgSelector] = useState(false);
 
   useEffect(() => {
     if (!diagram) {
@@ -61,9 +80,10 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
   };
 
   const handleDownloadSvg = () => {
-    const svgData = content?.svgContent || diagram.svgContent;
-    if (!svgData) return;
+    const rawSvg = content?.svgContent || diagram.svgContent;
+    if (!rawSvg) return;
 
+    const svgData = normalizeSvg(rawSvg);
     const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -75,7 +95,9 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const displayedSvg = content?.svgContent || diagram.svgContent || '';
+  const rawSvg = content?.svgContent || diagram.svgContent || '';
+  const displayedSvg = normalizeSvg(rawSvg);
+  const currentBgConfig = CANVAS_BG_CONFIG[canvasBg] || CANVAS_BG_CONFIG['dark-grid'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
@@ -132,6 +154,46 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                 <span>Mermaid Code</span>
               </button>
             </div>
+
+            {/* Canvas Background Contrast Selector (when viewing SVG) */}
+            {activeTab === 'svg' && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowBgSelector(!showBgSelector)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-dark-base border border-dark-border hover:bg-dark-hover text-dark-text hover:text-white transition-all"
+                  title="Change Background Contrast"
+                >
+                  <Palette className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">{currentBgConfig.label}</span>
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+
+                {showBgSelector && (
+                  <div className="absolute top-11 right-0 w-44 rounded-xl bg-dark-card border border-dark-border shadow-2xl p-1.5 flex flex-col gap-1 z-40">
+                    <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-dark-muted">
+                      Preview Contrast
+                    </div>
+                    {Object.entries(CANVAS_BG_CONFIG).map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          setCanvasBg(key as CanvasBgTheme);
+                          setShowBgSelector(false);
+                        }}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-left transition-colors ${
+                          canvasBg === key ? 'bg-brand-primary text-white' : 'text-dark-text hover:bg-dark-hover'
+                        }`}
+                      >
+                        <span className={`w-3 h-3 rounded-full border border-dark-border shrink-0 ${cfg.previewBg}`} />
+                        <span>{cfg.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Open in Canvas Editor Button */}
             <button
@@ -203,15 +265,12 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
               <span className="text-sm">Loading diagram details...</span>
             </div>
           ) : activeTab === 'svg' ? (
-            <div className="w-full h-full min-h-[400px] p-8 flex items-center justify-center bg-diagram-grid bg-dark-base overflow-auto">
+            <div className={`w-full h-full min-h-[400px] p-6 flex items-center justify-center overflow-auto transition-colors duration-200 ${currentBgConfig.className}`}>
               {displayedSvg ? (
                 <div
-                  className="max-w-full max-h-full flex items-center justify-center drop-shadow-xl"
+                  className="w-full h-full max-w-full max-h-[calc(90vh-140px)] flex items-center justify-center drop-shadow-xl"
                   dangerouslySetInnerHTML={{
-                    __html: displayedSvg.replace(
-                      /<svg([^>]+)>/,
-                      '<svg$1 style="max-width: 100%; max-height: calc(90vh - 140px); width: auto; height: auto;">'
-                    )
+                    __html: displayedSvg
                   }}
                 />
               ) : (

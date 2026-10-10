@@ -22,14 +22,15 @@ export class ApiClient {
   public static async createDiagram(
     title: string,
     code: string,
-    folderPath: string = ''
+    folderPath: string = '',
+    theme?: import('../types').MermaidTheme
   ): Promise<CompileResult> {
     const res = await fetch(`${API_BASE}/diagrams`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ title, code, folderPath })
+      body: JSON.stringify({ title, code, folderPath, theme })
     });
 
     const data = await res.json();
@@ -65,6 +66,42 @@ export class ApiClient {
     return data;
   }
 
+  public static async renameFolder(
+    folderPath: string,
+    newName: string
+  ): Promise<{ success: boolean; folderPath: string }> {
+    const res = await fetch(`${API_BASE}/folders/rename`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ folderPath, newName })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to rename folder');
+    }
+
+    return data;
+  }
+
+  public static async deleteFolder(
+    folderPath: string
+  ): Promise<{ success: boolean; message?: string }> {
+    const params = new URLSearchParams({ folder: folderPath });
+    const res = await fetch(`${API_BASE}/folders?${params.toString()}`, {
+      method: 'DELETE'
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to delete folder');
+    }
+
+    return data;
+  }
+
   public static async getDiagramContent(
     id: string,
     folderPath: string = ''
@@ -84,14 +121,15 @@ export class ApiClient {
     id: string,
     title: string,
     code: string,
-    folderPath: string = ''
+    folderPath: string = '',
+    theme?: import('../types').MermaidTheme
   ): Promise<CompileResult> {
     const res = await fetch(`${API_BASE}/diagrams/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ title, code, folderPath })
+      body: JSON.stringify({ title, code, folderPath, theme })
     });
 
     const data = await res.json();

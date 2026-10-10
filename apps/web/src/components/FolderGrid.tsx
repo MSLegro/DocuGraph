@@ -1,15 +1,20 @@
 import React from 'react';
-import { Folder, ChevronRight } from 'lucide-react';
+import { ChevronRight, Edit3, Trash2 } from 'lucide-react';
 import type { FolderItem } from '../types';
+import { getFolderTheme } from '../utils/folder-icons';
 
 interface FolderGridProps {
   folders: FolderItem[];
   onSelectFolder: (path: string) => void;
+  onRenameFolder: (folder: FolderItem) => void;
+  onDeleteFolder: (folder: FolderItem) => void;
 }
 
 export const FolderGrid: React.FC<FolderGridProps> = ({
   folders,
-  onSelectFolder
+  onSelectFolder,
+  onRenameFolder,
+  onDeleteFolder
 }) => {
   if (folders.length === 0) return null;
 
@@ -23,29 +28,63 @@ export const FolderGrid: React.FC<FolderGridProps> = ({
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
-        {folders.map(folder => (
-          <div
-            key={folder.relativePath}
-            onClick={() => onSelectFolder(folder.relativePath)}
-            className="group flex items-center justify-between p-3.5 rounded-xl bg-dark-card border border-dark-border hover:border-brand-primary/50 hover:bg-dark-hover transition-all cursor-pointer shadow-sm hover:shadow-md"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-lg bg-brand-primary/10 text-brand-glow flex items-center justify-center group-hover:bg-brand-primary/20 transition-colors">
-                <Folder className="w-5 h-5" />
+        {folders.map(folder => {
+          const theme = getFolderTheme(folder.name);
+          const FolderIcon = theme.icon;
+
+          return (
+            <div
+              key={folder.relativePath}
+              onClick={() => onSelectFolder(folder.relativePath)}
+              className="group relative flex items-center justify-between p-3.5 rounded-xl bg-dark-card border border-dark-border hover:border-brand-primary/50 hover:bg-dark-hover transition-all cursor-pointer shadow-sm hover:shadow-md overflow-hidden"
+            >
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className={`w-9 h-9 rounded-lg ${theme.badgeBg} flex items-center justify-center shrink-0 transition-transform group-hover:scale-105`}>
+                  <FolderIcon className={`w-5 h-5 ${theme.colorClass}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-medium text-dark-text truncate group-hover:text-white transition-colors">
+                    {folder.name}
+                  </h3>
+                  <p className="text-xs text-dark-muted">
+                    {folder.diagramCount} {folder.diagramCount === 1 ? 'diagram' : 'diagrams'}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-medium text-dark-text truncate group-hover:text-white transition-colors">
-                  {folder.name}
-                </h3>
-                <p className="text-xs text-dark-muted">
-                  {folder.diagramCount} {folder.diagramCount === 1 ? 'diagram' : 'diagrams'}
-                </p>
+
+              {/* Action buttons (hover) or Chevron */}
+              <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRenameFolder(folder);
+                    }}
+                    className="p-1.5 rounded-lg text-dark-muted hover:text-white hover:bg-dark-base transition-colors"
+                    title="Rename folder"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteFolder(folder);
+                    }}
+                    className="p-1.5 rounded-lg text-dark-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                    title="Delete folder"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <ChevronRight className="w-4 h-4 text-dark-muted group-hover:text-white group-hover:translate-x-0.5 transition-all group-hover:hidden" />
               </div>
             </div>
-
-            <ChevronRight className="w-4 h-4 text-dark-muted group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

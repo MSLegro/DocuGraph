@@ -1,0 +1,62 @@
+---
+config:
+  theme: redux-color
+---
+sequenceDiagram
+
+
+    %% FASE 0: VALIDACIÓN DE DESTINATARIO
+    rect rgb(240, 240, 240)
+        Note over Bot, DGW: 0. Validación de Datos de Contacto
+        Bot->>DGW: Consultar datos del paciente (por documento)
+        DGW-->>Bot: Retorna información básica y correo
+        alt Correo ausente o inválido
+            Bot->>Bot: Registrar log de excepción (Paciente sin correo)
+            Note over Bot: Finaliza ejecución para este paciente
+        end
+    end
+
+    %% FASE 1: RUTA A - FOLIO DE SALIDA Y EMPAQUETADO
+    rect rgb(235, 245, 255)
+        Note over Bot, Paciente: Ruta A: Empaquetado Plan de Manejo Externo
+        Bot->>DGW: Navegar a: Historias Clínicas > Procesos > Consultar histórico de paciente
+        Bot->>DGW: Buscar por documento y seleccionar ingreso actual
+        DGW-->>Bot: Listado de evoluciones / folios
+        Bot->>DGW: Inspeccionar última evolución / folio de salida
+        DGW-->>Bot: Detalles del folio (ítems registrados)
+
+        alt Folio contiene Plan de Manejo Externo (Salida válida)
+            Bot->>DGW: Clic en opción "Imprimir folio"
+            Bot->>DGW: Ejecutar acción "Enviar reportes"
+            DGW->>Mail: Empaquetar y despachar documentos de salida
+            Mail-->>Paciente: Entrega correo con paquete de egreso
+            DGW-->>Bot: Confirmación de envío exitoso
+        else Folio solo contiene Plan Interno / Órdenes fragmentadas
+            Bot->>Bot: Registrar log de excepción: Folio de salida no consolidado
+        end
+    end
+
+    %% FASE 2: RUTA B - EXTRACCIÓN Y ENVÍO DE EPICRISIS
+    rect rgb(255, 245, 235)
+        Note over Bot, Paciente: Ruta B: Gestión Individual de Epicrisis
+        Bot->>DGW: Navegar a: Historias Clínicas > Procesos > Epicrisis pendientes
+        Bot->>DGW: Clic en botón "Agregar"
+        Bot->>DGW: Clic en búsqueda (lupa) de "Consecutivo"
+        Bot->>DGW: Filtrar por Documento / Número de ingreso
+
+        alt Epicrisis Confirmada encontrada
+            DGW-->>Bot: Registro con estado confirmado
+            Bot->>DGW: Abrir "Vista previa"
+            DGW-->>Bot: Renderizado del documento
+            Bot->>DGW: Descargar archivo Epicrisis (PDF)
+            Bot->>Mail: Enviar correo al paciente con PDF adjunto
+            Mail-->>Paciente: Entrega correo con Epicrisis
+            Bot->>Bot: Registrar log de envío de Epicrisis
+        else Epicrisis en estado Registrado / Parcial / No confirmada
+            DGW-->>Bot: Sin resultados confirmados
+            Bot->>Bot: Registrar log: Epicrisis pendiente de confirmación médica
+        end
+    end
+
+    %% CIERRE
+    Note over Bot: Consolidar estados en reporte final de ejecución

@@ -32,6 +32,62 @@
 .bg-diagram-grid {
   background-size: 24px 24px;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
 }
+
+.bg-diagram-grid-light {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+}
+
+.bg-diagram-blueprint {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+}
+
+/* App Theme overrides */
+html.theme-dark-slate body {
+  background-color: #0F172A;
+  color: #F8FAFC;
+}
+
+html.theme-light-slate body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+}
+
+html.theme-light-slate .bg-dark-base {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+html.theme-light-slate .bg-dark-card {
+  background-color: #FFFFFF;
+  color: #0F172A;
+}
+
+html.theme-light-slate .border-dark-border {
+  border-color: #E2E8F0;
+}
+
+html.theme-light-slate .hover\:bg-dark-hover:hover {
+  background-color: #F8FAFC;
+}
+
+html.theme-light-slate .text-white {
+  color: #0F172A !important;
+}
+
+html.theme-light-slate .text-dark-muted {
+  color: #64748B;
+}
+
+html.theme-light-slate .bg-dark-hover {
+  background-color: #E2E8F0;
+}
+

@@ -15,11 +15,14 @@ export type DiagramType =
   | 'block'
   | 'unknown';
 
+export type MermaidTheme = 'dark' | 'default' | 'neutral' | 'forest' | 'base';
+
 export interface DiagramMeta {
   id: string;
   title: string;
   folderPath: string;
   diagramType: DiagramType;
+  theme?: MermaidTheme;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,6 +31,7 @@ export interface CompileOptions {
   title: string;
   code: string;
   folderPath?: string;
+  theme?: MermaidTheme;
 }
 
 export interface CompileResult {
@@ -42,6 +46,7 @@ export interface DiagramItem {
   title: string;
   folderPath: string;
   diagramType: DiagramType;
+  theme?: MermaidTheme;
   createdAt: string;
   updatedAt: string;
   svgContent?: string;
