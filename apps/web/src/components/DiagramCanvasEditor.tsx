@@ -256,32 +256,31 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
   }, [svgContent, getDiagramDimensions]);
 
   /**
-   * Zooms inward or outward anchored strictly to the center of the diagram
+   * Zooms inward or outward anchored strictly to the center of the viewport
    */
   const zoomFromCenter = useCallback((factor: number) => {
     if (!canvasRef.current) return;
 
+    const rect = canvasRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
     const curScale = scaleRef.current;
     const curPan = panRef.current;
-    const dims = getDiagramDimensions();
 
     const newScale = Math.min(Math.max(curScale * factor, 0.05), 10);
     if (newScale === curScale) return;
 
-    // Current center of the diagram on screen:
-    const currentCenterX = curPan.x + (dims.width * curScale) / 2;
-    const currentCenterY = curPan.y + (dims.height * curScale) / 2;
-
-    // Anchor diagram center to current position on screen:
-    const newPanX = currentCenterX - (dims.width * newScale) / 2;
-    const newPanY = currentCenterY - (dims.height * newScale) / 2;
+    // Anchor zoom to the exact center of the viewport (symmetrical in all directions)
+    const newPanX = centerX - (centerX - curPan.x) * (newScale / curScale);
+    const newPanY = centerY - (centerY - curPan.y) * (newScale / curScale);
 
     scaleRef.current = newScale;
     panRef.current = { x: newPanX, y: newPanY };
 
     setScale(newScale);
     setPan({ x: newPanX, y: newPanY });
-  }, [getDiagramDimensions]);
+  }, []);
 
   /**
    * Zoom In (+) anchored to the center of the diagram
