@@ -288,5 +288,56 @@ export async function buildServer() {
     }
   });
 
+  // POST /api/diagrams/:id/favorite
+  server.post('/api/diagrams/:id/favorite', async (request, reply) => {
+    const params = request.params as { id: string };
+    const body = (request.body || {}) as { folderPath?: string };
+
+    try {
+      const result = await diagramService.toggleFavorite(body.folderPath || '', params.id);
+      return reply.status(200).send(result);
+    } catch (err: any) {
+      server.log.error(err);
+      return reply.status(400).send({
+        success: false,
+        error: err.message || 'Failed to toggle diagram favorite.'
+      });
+    }
+  });
+
+  // POST /api/folders/favorite
+  server.post('/api/folders/favorite', async (request, reply) => {
+    const body = request.body as { folderPath?: string };
+    if (!body || !body.folderPath) {
+      return reply.status(400).send({
+        error: 'The "folderPath" field is required.'
+      });
+    }
+
+    try {
+      const result = await fsExplorer.toggleFolderFavorite(body.folderPath);
+      return reply.status(200).send(result);
+    } catch (err: any) {
+      server.log.error(err);
+      return reply.status(400).send({
+        success: false,
+        error: err.message || 'Failed to toggle folder favorite.'
+      });
+    }
+  });
+
+  // GET /api/favorites
+  server.get('/api/favorites', async (_request, reply) => {
+    try {
+      const favorites = await fsExplorer.getAllFavorites();
+      return reply.status(200).send(favorites);
+    } catch (err: any) {
+      server.log.error(err);
+      return reply.status(500).send({
+        error: 'Failed to retrieve favorites.'
+      });
+    }
+  });
+
   return server;
 }

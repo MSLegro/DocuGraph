@@ -163,5 +163,59 @@ export class ApiClient {
     }
     return data;
   }
+
+  public static async toggleDiagramFavorite(
+    id: string,
+    folderPath: string = ''
+  ): Promise<{ success: boolean; isFavorite: boolean; meta?: import('../types').DiagramMeta; error?: string }> {
+    const res = await fetch(`${API_BASE}/diagrams/${id}/favorite`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ folderPath })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        isFavorite: false,
+        error: data.error || 'Failed to toggle diagram favorite'
+      };
+    }
+    return data;
+  }
+
+  public static async toggleFolderFavorite(
+    folderPath: string
+  ): Promise<{ success: boolean; isFavorite: boolean; error?: string }> {
+    const res = await fetch(`${API_BASE}/folders/favorite`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ folderPath })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        isFavorite: false,
+        error: data.error || 'Failed to toggle folder favorite'
+      };
+    }
+    return data;
+  }
+
+  public static async getFavorites(): Promise<import('../types').FavoritesResponse> {
+    const res = await fetch(`${API_BASE}/favorites`);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to fetch favorites');
+    }
+    return data;
+  }
 }
 

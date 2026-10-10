@@ -10,14 +10,19 @@ import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { RenameFolderModal } from './components/RenameFolderModal';
 import { DeleteFolderModal } from './components/DeleteFolderModal';
 import { ApiClient } from './api/client';
-import type { TreeResponse, DiagramItem, FolderItem, MermaidTheme } from './types';
-import { Loader2, RefreshCw } from 'lucide-react';
+import type { TreeResponse, DiagramItem, FolderItem, MermaidTheme, FavoritesResponse } from './types';
+import { Loader2, RefreshCw, Star, Sparkles } from 'lucide-react';
 
 export function App() {
   const [currentFolder, setCurrentFolder] = useState<string>('');
   const [treeData, setTreeData] = useState<TreeResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Favorites state
+  const [onlyFavorites, setOnlyFavorites] = useState<boolean>(false);
+  const [favoritesData, setFavoritesData] = useState<FavoritesResponse | null>(null);
+  const [loadingFavorites, setLoadingFavorites] = useState<boolean>(false);
 
   // Modals and Active Views state
   const [isNewDiagramOpen, setIsNewDiagramOpen] = useState<boolean>(false);
@@ -42,11 +47,32 @@ export function App() {
     }
   }, []);
 
+  const loadFavorites = useCallback(async () => {
+    setLoadingFavorites(true);
+    try {
+      const favs = await ApiClient.getFavorites();
+      setFavoritesData(favs);
+    } catch (err: any) {
+      console.error('Failed to load favorites', err);
+    } finally {
+      setLoadingFavorites(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadTree(currentFolder);
   }, [currentFolder, loadTree]);
 
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
+
   const handleNavigateFolder = (path: string) => {
+    if (path === '__favorites__') {
+      setOnlyFavorites(true);
+      return;
+    }
+    setOnlyFavorites(false);
     setCurrentFolder(path);
   };
 
@@ -102,6 +128,7 @@ export function App() {
     const res = await ApiClient.deleteDiagram(diagram.id, diagram.folderPath);
     if (res.success) {
       await loadTree(currentFolder);
+      await loadFavorites();
       if (selectedDiagram?.id === diagram.id) {
         setSelectedDiagram(null);
       }
@@ -113,19 +140,192 @@ export function App() {
     }
   };
 
+  const handleToggleDiagramFavorite = async (diagram: DiagramItem) => {
+    const nextStatus = !diagram.isFavorite;
+
+    // Optimistic update in treeData
+    setTreeData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        diagrams: prev.diagrams.map((d) => (d.id === diagram.id ? { ...d, isFavorite: nextStatus } : d))
+      };
+    });
+
+    // Optimistic update in favoritesData
+    setFavoritesData((prev) => {
+      if (!prev) return prev;
+      if (nextStatus) {
+        const alreadyExists = prev.diagrams.some((d) => d.id === diagram.id);
+        if (alreadyExists) return prev;
+        return {
+          ...prev,
+          diagrams: [{ ...diagram, isFavorite: true }, ...prev.diagrams]
+        };
+      } else {
+        return {
+          ...prev,
+          diagrams: prev.diagrams.filter((d) => d.id !== diagram.id)
+        };
+      }
+    });
+
+    if (selectedDiagram?.id === diagram.id) {
+      setSelectedDiagram((prev) => (prev ? { ...prev, isFavorite: nextStatus } : null));
+    }
+    if (canvasDiagram?.id === diagram.id) {
+      setCanvasDiagram((prev) => (prev ? { ...prev, isFavorite: nextStatus } : null));
+    }
+
+    try {
+      await ApiClient.toggleDiagramFavorite(diagram.id, diagram.folderPath);
+      await loadFavorites();
+    } catch (err) {
+      console.error('Failed to toggle diagram favorite', err);
+      await loadTree(currentFolder);
+      await loadFavorites();
+    }
+  };
+
+  const handleToggleFolderFavorite = async (folder: FolderItem) => {
+    const nextStatus = !folder.isFavorite;
+
+    // Optimistic update in treeData
+    setTreeData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        folders: prev.folders.map((f) => (f.relativePath === folder.relativePath ? { ...f, isFavorite: nextStatus } : f))
+      };
+    });
+
+    // Optimistic update in favoritesData
+    setFavoritesData((prev) => {
+      if (!prev) return prev;
+      if (nextStatus) {
+        const alreadyExists = prev.folders.some((f) => f.relativePath === folder.relativePath);
+        if (alreadyExists) return prev;
+        return {
+          ...prev,
+          folders: [...prev.folders, { ...folder, isFavorite: true }]
+        };
+      } else {
+        return {
+          ...prev,
+          folders: prev.folders.filter((f) => f.relativePath !== folder.relativePath)
+        };
+      }
+    });
+
+    try {
+      await ApiClient.toggleFolderFavorite(folder.relativePath);
+      await loadFavorites();
+    } catch (err) {
+      console.error('Failed to toggle folder favorite', err);
+      await loadTree(currentFolder);
+      await loadFavorites();
+    }
+  };
+
+  const totalFavoritesCount = (favoritesData?.folders.length || 0) + (favoritesData?.diagrams.length || 0);
+
+  const breadcrumbs = onlyFavorites
+    ? [
+        { name: 'Root', path: '' },
+        { name: '⭐ Favorites', path: '__favorites__' }
+      ]
+    : treeData?.breadcrumbs || [{ name: 'Root', path: '' }];
+
   return (
     <div className="min-h-screen bg-dark-base text-dark-text flex flex-col selection:bg-brand-primary selection:text-white">
-      {/* Top Bar with brand, breadcrumbs and actions */}
+      {/* Top Bar with brand, breadcrumbs, favorites toggle and actions */}
       <TopBar
-        breadcrumbs={treeData?.breadcrumbs || [{ name: 'Root', path: '' }]}
+        breadcrumbs={breadcrumbs}
         onNavigateFolder={handleNavigateFolder}
         onOpenNewDiagram={() => setIsNewDiagramOpen(true)}
         onOpenNewFolder={() => setIsNewFolderOpen(true)}
+        onlyFavorites={onlyFavorites}
+        onToggleOnlyFavorites={() => setOnlyFavorites((prev) => !prev)}
+        favoritesCount={totalFavoritesCount}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
-        {loading && !treeData ? (
+        {onlyFavorites ? (
+          <div>
+            <div className="flex items-center justify-between mb-6 pb-3 border-b border-dark-border/60">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                  <Star className="w-4 h-4 fill-amber-400" />
+                </div>
+                <div>
+                  <h1 className="text-base font-semibold text-white">Favorite Items</h1>
+                  <p className="text-xs text-dark-muted">
+                    Quick access to all your starred diagrams and folders across the project.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setOnlyFavorites(false)}
+                className="text-xs text-brand-glow hover:text-white transition-colors"
+              >
+                Back to folder browser →
+              </button>
+            </div>
+
+            {loadingFavorites && !favoritesData ? (
+              <div className="flex flex-col items-center justify-center py-24 gap-3 text-dark-muted">
+                <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+                <p className="text-sm">Loading favorites...</p>
+              </div>
+            ) : totalFavoritesCount === 0 ? (
+              <div className="flex flex-col items-center justify-center p-16 text-center rounded-2xl bg-dark-card/40 border border-dashed border-dark-border mt-4">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-4">
+                  <Star className="w-7 h-7" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-1">No favorites yet</h3>
+                <p className="text-sm text-dark-muted max-w-md mb-5">
+                  Click the star icon on any diagram or folder to add them to your favorites for instant 1-click access.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setOnlyFavorites(false)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-dark-card border border-dark-border text-white hover:bg-dark-hover transition-colors"
+                >
+                  <Sparkles className="w-4 h-4 text-brand-glow" />
+                  <span>Browse all files</span>
+                </button>
+              </div>
+            ) : (
+              <div>
+                {/* Favorited Folders */}
+                {favoritesData && favoritesData.folders.length > 0 && (
+                  <FolderGrid
+                    folders={favoritesData.folders}
+                    onSelectFolder={handleNavigateFolder}
+                    onRenameFolder={(folder) => setFolderToRename(folder)}
+                    onDeleteFolder={(folder) => setFolderToDelete(folder)}
+                    onToggleFavorite={handleToggleFolderFavorite}
+                  />
+                )}
+
+                {/* Favorited Diagrams */}
+                {favoritesData && favoritesData.diagrams.length > 0 && (
+                  <DiagramGrid
+                    diagrams={favoritesData.diagrams}
+                    onSelectDiagram={(diag) => setSelectedDiagram(diag)}
+                    onOpenCanvas={(diag) => setCanvasDiagram(diag)}
+                    onDeleteDiagram={(diag) => setDiagramToDelete(diag)}
+                    onOpenNewDiagram={() => setIsNewDiagramOpen(true)}
+                    onToggleFavorite={handleToggleDiagramFavorite}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        ) : loading && !treeData ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-dark-muted">
             <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
             <p className="text-sm">Connecting to local storage engine...</p>
@@ -151,6 +351,7 @@ export function App() {
               onSelectFolder={handleNavigateFolder}
               onRenameFolder={(folder) => setFolderToRename(folder)}
               onDeleteFolder={(folder) => setFolderToDelete(folder)}
+              onToggleFavorite={handleToggleFolderFavorite}
             />
 
             {/* Diagrams Grid */}
@@ -160,6 +361,7 @@ export function App() {
               onOpenCanvas={(diag) => setCanvasDiagram(diag)}
               onDeleteDiagram={(diag) => setDiagramToDelete(diag)}
               onOpenNewDiagram={() => setIsNewDiagramOpen(true)}
+              onToggleFavorite={handleToggleDiagramFavorite}
             />
           </div>
         )}
@@ -192,13 +394,18 @@ export function App() {
         onClose={() => setSelectedDiagram(null)}
         onOpenCanvas={(diag) => setCanvasDiagram(diag)}
         onDelete={(diag) => setDiagramToDelete(diag)}
+        onToggleFavorite={handleToggleDiagramFavorite}
       />
 
       {/* Interactive Full-Screen Canvas Editor */}
       <DiagramCanvasEditor
         diagram={canvasDiagram}
         onClose={() => setCanvasDiagram(null)}
-        onSaved={() => loadTree(currentFolder)}
+        onSaved={() => {
+          loadTree(currentFolder);
+          loadFavorites();
+        }}
+        onToggleFavorite={handleToggleDiagramFavorite}
       />
 
       {/* Delete Confirmation Modal */}

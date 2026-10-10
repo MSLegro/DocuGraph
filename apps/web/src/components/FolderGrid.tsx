@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Edit3, Trash2 } from 'lucide-react';
+import { ChevronRight, Edit3, Trash2, Star } from 'lucide-react';
 import type { FolderItem } from '../types';
 import { getFolderTheme } from '../utils/folder-icons';
 
@@ -8,13 +8,15 @@ interface FolderGridProps {
   onSelectFolder: (path: string) => void;
   onRenameFolder: (folder: FolderItem) => void;
   onDeleteFolder: (folder: FolderItem) => void;
+  onToggleFavorite?: (folder: FolderItem) => void;
 }
 
 export const FolderGrid: React.FC<FolderGridProps> = ({
   folders,
   onSelectFolder,
   onRenameFolder,
-  onDeleteFolder
+  onDeleteFolder,
+  onToggleFavorite
 }) => {
   if (folders.length === 0) return null;
 
@@ -52,8 +54,25 @@ export const FolderGrid: React.FC<FolderGridProps> = ({
                 </div>
               </div>
 
-              {/* Action buttons (hover) or Chevron */}
+              {/* Action buttons (hover or favorite) or Chevron */}
               <div className="flex items-center gap-1 shrink-0">
+                {/* Favorite Star Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite?.(folder);
+                  }}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    folder.isFavorite
+                      ? 'text-amber-400 hover:text-amber-300'
+                      : 'text-dark-muted/60 opacity-0 group-hover:opacity-100 hover:text-amber-400 hover:bg-dark-base'
+                  }`}
+                  title={folder.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Star className={`w-3.5 h-3.5 ${folder.isFavorite ? 'fill-amber-400' : ''}`} />
+                </button>
+
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     type="button"

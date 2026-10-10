@@ -99,12 +99,14 @@ export class DiagramService {
       const svgContent = await fs.readFile(svgPath, 'utf-8');
 
       const diagramType = detectDiagramType(code);
+      const isFavorite = Boolean(options.isFavorite);
       const meta: DiagramMeta = {
         id,
         title: title.trim(),
         folderPath: safeRelFolder,
         diagramType,
         theme,
+        isFavorite,
         createdAt,
         updatedAt: new Date().toISOString()
       };
@@ -238,12 +240,14 @@ export class DiagramService {
     const currentMetaPath = path.join(targetDir, `${currentId}.meta.json`);
 
     let originalCreatedAt = new Date().toISOString();
+    let originalIsFavorite = false;
     let currentTheme: import('../types.js').MermaidTheme | undefined = options.theme;
     if (existsSync.existsSync(currentMetaPath)) {
       try {
         const oldMetaRaw = await fs.readFile(currentMetaPath, 'utf-8');
         const oldMeta = JSON.parse(oldMetaRaw) as DiagramMeta;
         if (oldMeta.createdAt) originalCreatedAt = oldMeta.createdAt;
+        if (oldMeta.isFavorite !== undefined) originalIsFavorite = Boolean(oldMeta.isFavorite);
         if (!currentTheme && oldMeta.theme) currentTheme = oldMeta.theme;
       } catch {
         // ignore
@@ -257,16 +261,18 @@ export class DiagramService {
       title: options.title,
       code: options.code,
       folderPath,
-      theme: currentTheme
+      theme: currentTheme,
+      isFavorite: originalIsFavorite
     });
 
     if (!result.success) {
       return result;
     }
 
-    // Preserve original createdAt
+    // Preserve original createdAt and isFavorite
     if (result.meta) {
       result.meta.createdAt = originalCreatedAt;
+      result.meta.isFavorite = originalIsFavorite;
       const newMetaPath = path.join(targetDir, `${newId}.meta.json`);
       await fs.writeFile(newMetaPath, JSON.stringify(result.meta, null, 2), 'utf-8');
     }
@@ -278,5 +284,36 @@ export class DiagramService {
 
     return result;
   }
+
+  /**
+   * Toggles the favorite status of a diagram.
+   */
+  public async toggleFavorite(
+    folderPath: string,
+    id: string
+  ): Promise<{ success: boolean; isFavorite: boolean; meta?: DiagramMeta }> {
+    const safeRel = sanitizeFolderPath(folderPath);
+    const targetDir = this.resolveTargetDir(safeRel);
+    const metaPath = path.join(targetDir, `${id}.meta.json`);
+
+    if (!existsSync.existsSync(metaPath)) {
+      throw new Error(`Diagram "${id}" not found in folder "${safeRel || 'root'}"`);
+    }
+
+    const metaRaw = await fs.readFile(metaPath, 'utf-8');
+    const meta = JSON.parse(metaRaw) as DiagramMeta;
+    const newFavorite = !Boolean(meta.isFavorite);
+    meta.isFavorite = newFavorite;
+    meta.updatedAt = new Date().toISOString();
+
+    await fs.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+
+    return {
+      success: true,
+      isFavorite: newFavorite,
+      meta
+    };
+  }
 }
+
 

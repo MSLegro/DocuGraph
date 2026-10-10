@@ -33,6 +33,7 @@ export interface DiagramMeta {
   folderPath: string;
   diagramType: DiagramType;
   theme?: MermaidTheme;
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -43,6 +44,7 @@ export interface DiagramItem {
   folderPath: string;
   diagramType: DiagramType;
   theme?: MermaidTheme;
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
   svgContent?: string;
@@ -52,11 +54,17 @@ export interface FolderItem {
   name: string;
   relativePath: string;
   diagramCount: number;
+  isFavorite?: boolean;
 }
 
 export interface TreeResponse {
   currentFolder: string;
   breadcrumbs: Array<{ name: string; path: string }>;
+  folders: FolderItem[];
+  diagrams: DiagramItem[];
+}
+
+export interface FavoritesResponse {
   folders: FolderItem[];
   diagrams: DiagramItem[];
 }

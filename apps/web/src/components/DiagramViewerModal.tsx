@@ -12,7 +12,8 @@ import {
   Maximize2,
   Trash2,
   Palette,
-  ChevronDown
+  ChevronDown,
+  Star
 } from 'lucide-react';
 import type { DiagramItem, DiagramContentResponse, CanvasBgTheme } from '../types';
 import { ApiClient } from '../api/client';
@@ -24,13 +25,15 @@ interface DiagramViewerModalProps {
   onClose: () => void;
   onOpenCanvas: (diagram: DiagramItem) => void;
   onDelete: (diagram: DiagramItem) => void;
+  onToggleFavorite?: (diagram: DiagramItem) => void;
 }
 
 export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
   diagram,
   onClose,
   onOpenCanvas,
-  onDelete
+  onDelete,
+  onToggleFavorite
 }) => {
   const { canvasBg, setCanvasBg } = useTheme();
 
@@ -109,9 +112,25 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-4 border-b border-dark-border bg-dark-card gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-white truncate flex items-center gap-2">
-                {diagram.title}
-              </h2>
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-lg font-bold text-white truncate">
+                  {diagram.title}
+                </h2>
+                {onToggleFavorite && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleFavorite(diagram)}
+                    className={`p-1.5 rounded-lg border transition-all ${
+                      diagram.isFavorite
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 shadow-sm'
+                        : 'bg-dark-base border-dark-border text-dark-muted hover:text-amber-400 hover:bg-dark-hover'
+                    }`}
+                    title={diagram.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Star className={`w-4 h-4 ${diagram.isFavorite ? 'fill-amber-400' : ''}`} />
+                  </button>
+                )}
+              </div>
               <div className="flex items-center gap-3 text-xs text-dark-muted mt-1">
                 <span className="flex items-center gap-1 font-mono text-dark-muted/80">
                   <Tag className="w-3 h-3" />

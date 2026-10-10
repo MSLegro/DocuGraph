@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import existsSync from 'node:fs';
 import path from 'node:path';
-import type { FolderItem, DiagramItem, TreeResponse, DiagramMeta } from '../types.js';
+import type { FolderItem, DiagramItem, TreeResponse, DiagramMeta, FavoritesResponse } from '../types.js';
 import { getStorageRoot } from '../config.js';
 import { sanitizeFolderPath } from './diagram-service.js';
 
@@ -124,10 +124,23 @@ export class FileSystemExplorer {
           count = 0;
         }
 
+        // Check if folder is marked favorite
+        let isFavorite = false;
+        const folderMetaPath = path.join(subDirPath, '.folder.json');
+        if (existsSync.existsSync(folderMetaPath)) {
+          try {
+            const fMetaRaw = await fs.readFile(folderMetaPath, 'utf-8');
+            isFavorite = Boolean(JSON.parse(fMetaRaw).isFavorite);
+          } catch {
+            // ignore
+          }
+        }
+
         folders.push({
           name: entry.name,
           relativePath: folderRelPath,
-          diagramCount: count
+          diagramCount: count,
+          isFavorite
         });
       } else if (entry.isFile() && entry.name.endsWith('.meta.json')) {
         const id = entry.name.replace(/\.meta\.json$/, '');
@@ -149,6 +162,7 @@ export class FileSystemExplorer {
             folderPath: safeRel,
             diagramType: meta.diagramType || 'flowchart',
             theme: meta.theme || 'dark',
+            isFavorite: Boolean(meta.isFavorite),
             createdAt: meta.createdAt || new Date().toISOString(),
             updatedAt: meta.updatedAt || new Date().toISOString(),
             svgContent
@@ -182,6 +196,136 @@ export class FileSystemExplorer {
       breadcrumbs,
       folders,
       diagrams
+    };
+  }
+
+  /**
+   * Toggles favorite status of a folder.
+   */
+  public async toggleFolderFavorite(
+    relativeFolderPath: string
+  ): Promise<{ success: boolean; isFavorite: boolean }> {
+    const safeRel = sanitizeFolderPath(relativeFolderPath);
+    if (!safeRel) {
+      throw new Error('Cannot toggle favorite on root directory');
+    }
+
+    const folderAbs = path.join(this.storageRoot, safeRel);
+    if (!existsSync.existsSync(folderAbs)) {
+      throw new Error(`Folder "${safeRel}" does not exist`);
+    }
+
+    const folderMetaPath = path.join(folderAbs, '.folder.json');
+    let currentFavorite = false;
+    if (existsSync.existsSync(folderMetaPath)) {
+      try {
+        const raw = await fs.readFile(folderMetaPath, 'utf-8');
+        currentFavorite = Boolean(JSON.parse(raw).isFavorite);
+      } catch {
+        // ignore
+      }
+    }
+
+    const newFavorite = !currentFavorite;
+    await fs.writeFile(
+      folderMetaPath,
+      JSON.stringify({ isFavorite: newFavorite, updatedAt: new Date().toISOString() }, null, 2),
+      'utf-8'
+    );
+
+    return {
+      success: true,
+      isFavorite: newFavorite
+    };
+  }
+
+  /**
+   * Recursively discovers all favorited folders and diagrams in storage.
+   */
+  public async getAllFavorites(): Promise<FavoritesResponse> {
+    await this.ensureStorageRoot();
+    const favoriteFolders: FolderItem[] = [];
+    const favoriteDiagrams: DiagramItem[] = [];
+
+    const traverse = async (currentRel: string) => {
+      const currentAbs = path.join(this.storageRoot, currentRel);
+      if (!existsSync.existsSync(currentAbs)) return;
+
+      const entries = await fs.readdir(currentAbs, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          if (entry.name.startsWith('.')) continue;
+
+          const subRel = currentRel ? `${currentRel}/${entry.name}` : entry.name;
+          const subAbs = path.join(currentAbs, entry.name);
+
+          // Check folder favorite
+          const folderMetaPath = path.join(subAbs, '.folder.json');
+          let isFolderFav = false;
+          if (existsSync.existsSync(folderMetaPath)) {
+            try {
+              const raw = await fs.readFile(folderMetaPath, 'utf-8');
+              isFolderFav = Boolean(JSON.parse(raw).isFavorite);
+            } catch {}
+          }
+
+          let count = 0;
+          try {
+            const subEntries = await fs.readdir(subAbs);
+            count = subEntries.filter(f => f.endsWith('.meta.json')).length;
+          } catch {}
+
+          if (isFolderFav) {
+            favoriteFolders.push({
+              name: entry.name,
+              relativePath: subRel,
+              diagramCount: count,
+              isFavorite: true
+            });
+          }
+
+          await traverse(subRel);
+        } else if (entry.isFile() && entry.name.endsWith('.meta.json')) {
+          const id = entry.name.replace(/\.meta\.json$/, '');
+          const metaPath = path.join(currentAbs, entry.name);
+          const svgPath = path.join(currentAbs, `${id}.svg`);
+
+          try {
+            const metaRaw = await fs.readFile(metaPath, 'utf-8');
+            const meta = JSON.parse(metaRaw) as DiagramMeta;
+
+            if (meta.isFavorite) {
+              let svgContent: string | undefined;
+              if (existsSync.existsSync(svgPath)) {
+                svgContent = await fs.readFile(svgPath, 'utf-8');
+              }
+
+              favoriteDiagrams.push({
+                id: meta.id || id,
+                title: meta.title || id,
+                folderPath: currentRel,
+                diagramType: meta.diagramType || 'flowchart',
+                theme: meta.theme || 'dark',
+                isFavorite: true,
+                createdAt: meta.createdAt || new Date().toISOString(),
+                updatedAt: meta.updatedAt || new Date().toISOString(),
+                svgContent
+              });
+            }
+          } catch {}
+        }
+      }
+    };
+
+    await traverse('');
+
+    favoriteFolders.sort((a, b) => a.name.localeCompare(b.name));
+    favoriteDiagrams.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+    return {
+      folders: favoriteFolders,
+      diagrams: favoriteDiagrams
     };
   }
 }

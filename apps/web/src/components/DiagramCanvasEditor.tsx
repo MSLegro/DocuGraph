@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  Star
 } from 'lucide-react';
 import type { DiagramItem, DiagramContentResponse, MermaidTheme, CanvasBgTheme } from '../types';
 import { ApiClient } from '../api/client';
@@ -29,6 +30,7 @@ interface DiagramCanvasEditorProps {
   diagram: DiagramItem | null;
   onClose: () => void;
   onSaved: () => void;
+  onToggleFavorite?: (diagram: DiagramItem) => void;
 }
 
 const MERMAID_SNIPPETS = [
@@ -48,7 +50,8 @@ const MERMAID_THEMES: Array<{ id: MermaidTheme; label: string }> = [
 export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
   diagram,
   onClose,
-  onSaved
+  onSaved,
+  onToggleFavorite
 }) => {
   const { canvasBg, setCanvasBg } = useTheme();
 
@@ -303,6 +306,21 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
                 Saved
               </span>
+            )}
+
+            {onToggleFavorite && (
+              <button
+                type="button"
+                onClick={() => onToggleFavorite(diagram)}
+                className={`p-1.5 rounded-lg border transition-all ${
+                  diagram.isFavorite
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 shadow-sm'
+                    : 'bg-dark-base border-dark-border text-dark-muted hover:text-amber-400 hover:bg-dark-hover'
+                }`}
+                title={diagram.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                <Star className={`w-3.5 h-3.5 ${diagram.isFavorite ? 'fill-amber-400' : ''}`} />
+              </button>
             )}
           </div>
         </div>

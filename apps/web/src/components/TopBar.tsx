@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, Plus, FolderPlus, ChevronRight, Home, Sun, Moon, Palette } from 'lucide-react';
+import { Network, Plus, FolderPlus, ChevronRight, Home, Sun, Moon, Palette, Star } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { getFolderTheme } from '../utils/folder-icons';
 import type { AppTheme } from '../types';
@@ -9,6 +9,9 @@ interface TopBarProps {
   onNavigateFolder: (path: string) => void;
   onOpenNewDiagram: () => void;
   onOpenNewFolder: () => void;
+  onlyFavorites?: boolean;
+  onToggleOnlyFavorites?: () => void;
+  favoritesCount?: number;
 }
 
 const THEME_OPTIONS: Array<{ id: AppTheme; label: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -21,7 +24,10 @@ export const TopBar: React.FC<TopBarProps> = ({
   breadcrumbs,
   onNavigateFolder,
   onOpenNewDiagram,
-  onOpenNewFolder
+  onOpenNewFolder,
+  onlyFavorites,
+  onToggleOnlyFavorites,
+  favoritesCount
 }) => {
   const { appTheme, setAppTheme } = useTheme();
 
@@ -105,6 +111,32 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
 
           <div className="h-5 w-[1px] bg-dark-border mx-1 hidden sm:block" />
+
+          {/* Favorites Filter Button */}
+          {onToggleOnlyFavorites && (
+            <button
+              type="button"
+              onClick={onToggleOnlyFavorites}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
+                onlyFavorites
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-sm shadow-amber-500/10'
+                  : 'bg-dark-card border-dark-border text-dark-muted hover:text-white hover:bg-dark-hover'
+              }`}
+              title={onlyFavorites ? 'Show all diagrams and folders' : 'Show favorites only'}
+            >
+              <Star className={`w-4 h-4 ${onlyFavorites ? 'fill-amber-400 text-amber-400' : ''}`} />
+              <span className="hidden sm:inline">Favorites</span>
+              {favoritesCount !== undefined && favoritesCount > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    onlyFavorites ? 'bg-amber-400 text-slate-950' : 'bg-dark-border text-dark-text'
+                  }`}
+                >
+                  {favoritesCount}
+                </span>
+              )}
+            </button>
+          )}
 
           <button
             type="button"

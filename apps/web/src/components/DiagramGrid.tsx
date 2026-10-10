@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileCode2, Clock, Eye, Sparkles, Maximize2, Trash2 } from 'lucide-react';
+import { FileCode2, Clock, Eye, Sparkles, Maximize2, Trash2, Star } from 'lucide-react';
 import type { DiagramItem } from '../types';
 import { normalizeSvg } from '../utils/svg-utils';
 
@@ -9,6 +9,7 @@ interface DiagramGridProps {
   onOpenCanvas: (diagram: DiagramItem) => void;
   onDeleteDiagram: (diagram: DiagramItem) => void;
   onOpenNewDiagram: () => void;
+  onToggleFavorite?: (diagram: DiagramItem) => void;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -47,7 +48,8 @@ export const DiagramGrid: React.FC<DiagramGridProps> = ({
   onSelectDiagram,
   onOpenCanvas,
   onDeleteDiagram,
-  onOpenNewDiagram
+  onOpenNewDiagram,
+  onToggleFavorite
 }) => {
   if (diagrams.length === 0) {
     return (
@@ -106,6 +108,23 @@ export const DiagramGrid: React.FC<DiagramGridProps> = ({
                   </div>
                 )}
 
+                {/* Favorite Star Button (Top Right of Preview) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite?.(diagram);
+                  }}
+                  className={`absolute top-2.5 right-2.5 z-20 p-1.5 rounded-lg backdrop-blur-md transition-all ${
+                    diagram.isFavorite
+                      ? 'bg-dark-base/80 text-amber-400 border border-amber-500/30 shadow-md shadow-amber-500/10'
+                      : 'bg-dark-base/70 text-dark-muted/70 opacity-0 group-hover:opacity-100 hover:text-amber-400 hover:bg-dark-base border border-dark-border/60'
+                  }`}
+                  title={diagram.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Star className={`w-3.5 h-3.5 ${diagram.isFavorite ? 'fill-amber-400' : ''}`} />
+                </button>
+
                 {/* Hover overlay hint with action buttons */}
                 <div className="absolute inset-0 bg-dark-base/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity backdrop-blur-[2px]">
                   <button
@@ -132,6 +151,20 @@ export const DiagramGrid: React.FC<DiagramGridProps> = ({
                   >
                     <Maximize2 className="w-3.5 h-3.5" />
                     <span>Canvas</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFavorite?.(diagram);
+                    }}
+                    className={`p-2 rounded-xl bg-dark-card/90 border border-dark-border hover:bg-dark-hover transition-colors shadow-lg ${
+                      diagram.isFavorite ? 'text-amber-400' : 'text-dark-muted hover:text-amber-400'
+                    }`}
+                    title={diagram.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${diagram.isFavorite ? 'fill-amber-400' : ''}`} />
                   </button>
 
                   <button

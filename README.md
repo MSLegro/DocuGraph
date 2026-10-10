@@ -17,6 +17,10 @@
   - **🛠️ Canvas Toolset:** Interactive controls for **Pan tool (Hand)**, **Zoom In / Out**, **Reset (1:1)**, **Fit to Screen**, and **Native Fullscreen**.
   - **Live Mermaid Editor:** Real-time syntax editing with code snippets (`+ Node`, `+ Decision`, `+ Database`, `+ Subgraph`).
   - **Hot Compile Shortcut:** Save & recompile instantly with <kbd>Ctrl + S</kbd> / <kbd>Cmd + S</kbd> while preserving canvas position.
+- **⭐ Favorites & Quick Access:**
+  - One-click Star toggle on any diagram or folder card, within the quick preview, and inside the full-screen canvas editor.
+  - Project-wide **Favorites View** accessible directly from the Top Bar with a real-time count badge.
+  - Self-contained persistence: Diagram favorites are saved in `<id>.meta.json`, and folder favorites are saved in `.folder.json`.
 - **📁 Semantic Folder Icons & Folder Operations:**
   - **Material Icon Theme Integration:** Folders automatically receive tailored icons & badges based on folder names (`api`, `infra`, `db`, `auth`, `docs`, `web`, `test`, `cloud`, etc.) in the grid and breadcrumbs.
   - **Folder Management:** Full support for **Rename Folder** and **Delete Folder** (with non-empty item warnings).
@@ -130,6 +134,9 @@ pnpm build
 | `POST` | `/api/folders` | Creates a new physical directory in the active path | `201`, `400` |
 | `PUT` | `/api/folders/rename` | Renames an existing folder and migrates stored diagrams | `200`, `400`, `404` |
 | `DELETE` | `/api/folders?folder=<path>` | Permanently deletes folder and all diagrams within | `200`, `400`, `404` |
+| `POST` | `/api/diagrams/:id/favorite` | Toggles favorite status of a diagram | `200`, `400` |
+| `POST` | `/api/folders/favorite` | Toggles favorite status of a folder | `200`, `400` |
+| `GET` | `/api/favorites` | Returns all favorited folders and diagrams project-wide | `200`, `500` |
 
 ---
 
