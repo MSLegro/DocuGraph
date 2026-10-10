@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Edit3, Loader2, Folder } from 'lucide-react';
 import type { FolderItem } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface RenameFolderModalProps {
   folder: FolderItem | null;
@@ -13,6 +14,7 @@ export const RenameFolderModal: React.FC<RenameFolderModalProps> = ({
   onClose,
   onSubmit
 }) => {
+  const { t } = useLanguage();
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -59,10 +61,10 @@ export const RenameFolderModal: React.FC<RenameFolderModalProps> = ({
               <Edit3 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">Rename Folder</h3>
+              <h3 className="text-base font-semibold text-white">{t('modalRenameFolderTitle')}</h3>
               <p className="text-xs text-dark-muted flex items-center gap-1.5 mt-0.5">
                 <Folder className="w-3 h-3 text-dark-muted" />
-                Current: <span className="font-mono text-white">{folder.name}</span>
+                {t('currentFolderLabel')} <span className="font-mono text-white">{folder.name}</span>
               </p>
             </div>
           </div>
@@ -80,7 +82,7 @@ export const RenameFolderModal: React.FC<RenameFolderModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2">
-              New Folder Name
+              {t('newFolderNameLabel')}
             </label>
             <input
               type="text"
@@ -109,7 +111,7 @@ export const RenameFolderModal: React.FC<RenameFolderModalProps> = ({
               disabled={loading}
               className="px-4 py-2 rounded-xl text-sm font-medium text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
             >
-              Cancel
+              {t('btnCancel')}
             </button>
 
             <button
@@ -120,10 +122,10 @@ export const RenameFolderModal: React.FC<RenameFolderModalProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Renaming...</span>
+                  <span>{t('btnRenaming')}</span>
                 </>
               ) : (
-                <span>Rename Folder</span>
+                <span>{t('btnSaveChanges')}</span>
               )}
             </button>
           </div>

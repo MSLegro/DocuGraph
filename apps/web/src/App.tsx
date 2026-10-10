@@ -12,8 +12,10 @@ import { DeleteFolderModal } from './components/DeleteFolderModal';
 import { ApiClient } from './api/client';
 import type { TreeResponse, DiagramItem, FolderItem, MermaidTheme, FavoritesResponse } from './types';
 import { Loader2, RefreshCw, Star, Sparkles } from 'lucide-react';
+import { useLanguage } from './context/LanguageContext';
 
 export function App() {
+  const { t } = useLanguage();
   const [currentFolder, setCurrentFolder] = useState<string>('');
   const [treeData, setTreeData] = useState<TreeResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -231,10 +233,12 @@ export function App() {
 
   const breadcrumbs = onlyFavorites
     ? [
-        { name: 'Root', path: '' },
-        { name: '⭐ Favorites', path: '__favorites__' }
+        { name: t('rootFolder'), path: '' },
+        { name: `⭐ ${t('favorites')}`, path: '__favorites__' }
       ]
-    : treeData?.breadcrumbs || [{ name: 'Root', path: '' }];
+    : treeData?.breadcrumbs
+    ? treeData.breadcrumbs.map((b, idx) => (idx === 0 ? { ...b, name: t('rootFolder') } : b))
+    : [{ name: t('rootFolder'), path: '' }];
 
   return (
     <div className="min-h-screen bg-dark-base text-dark-text flex flex-col selection:bg-brand-primary selection:text-white">
@@ -259,9 +263,9 @@ export function App() {
                   <Star className="w-4 h-4 fill-amber-400" />
                 </div>
                 <div>
-                  <h1 className="text-base font-semibold text-white">Favorite Items</h1>
+                  <h1 className="text-base font-semibold text-white">{t('favoriteItems')}</h1>
                   <p className="text-xs text-dark-muted">
-                    Quick access to all your starred diagrams and folders across the project.
+                    {t('favoriteItemsSubtitle')}
                   </p>
                 </div>
               </div>
@@ -271,23 +275,23 @@ export function App() {
                 onClick={() => setOnlyFavorites(false)}
                 className="text-xs text-brand-glow hover:text-white transition-colors"
               >
-                Back to folder browser →
+                {t('backToFolderBrowser')}
               </button>
             </div>
 
             {loadingFavorites && !favoritesData ? (
               <div className="flex flex-col items-center justify-center py-24 gap-3 text-dark-muted">
                 <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-                <p className="text-sm">Loading favorites...</p>
+                <p className="text-sm">{t('loadingFavorites')}</p>
               </div>
             ) : totalFavoritesCount === 0 ? (
               <div className="flex flex-col items-center justify-center p-16 text-center rounded-2xl bg-dark-card/40 border border-dashed border-dark-border mt-4">
                 <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-4">
                   <Star className="w-7 h-7" />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-1">No favorites yet</h3>
+                <h3 className="text-lg font-semibold text-white mb-1">{t('noFavoritesYet')}</h3>
                 <p className="text-sm text-dark-muted max-w-md mb-5">
-                  Click the star icon on any diagram or folder to add them to your favorites for instant 1-click access.
+                  {t('noFavoritesSubtitle')}
                 </p>
                 <button
                   type="button"
@@ -295,7 +299,7 @@ export function App() {
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-dark-card border border-dark-border text-white hover:bg-dark-hover transition-colors"
                 >
                   <Sparkles className="w-4 h-4 text-brand-glow" />
-                  <span>Browse all files</span>
+                  <span>{t('browseAllFiles')}</span>
                 </button>
               </div>
             ) : (
@@ -328,11 +332,11 @@ export function App() {
         ) : loading && !treeData ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-dark-muted">
             <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-            <p className="text-sm">Connecting to local storage engine...</p>
+            <p className="text-sm">{t('connectingStorage')}</p>
           </div>
         ) : error ? (
           <div className="rounded-2xl bg-rose-500/10 border border-rose-500/30 p-6 text-center max-w-lg mx-auto my-12">
-            <h3 className="text-base font-semibold text-rose-400 mb-2">Connection Error</h3>
+            <h3 className="text-base font-semibold text-rose-400 mb-2">{t('connectionError')}</h3>
             <p className="text-sm text-dark-muted mb-4">{error}</p>
             <button
               type="button"
@@ -340,7 +344,7 @@ export function App() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-dark-card border border-dark-border text-white hover:bg-dark-hover transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
-              <span>Retry</span>
+              <span>{t('retry')}</span>
             </button>
           </div>
         ) : (
@@ -369,7 +373,7 @@ export function App() {
 
       {/* Footer Info */}
       <footer className="border-t border-dark-border/40 py-5 px-6 text-center text-xs text-dark-muted/60">
-        <p>DocuGraph • Local-First Diagram Manager • Open Source (MIT/Apache 2.0)</p>
+        <p>{t('footerText')}</p>
       </footer>
 
       {/* New Diagram Modal */}

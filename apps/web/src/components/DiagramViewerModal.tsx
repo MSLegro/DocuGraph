@@ -19,6 +19,7 @@ import type { DiagramItem, DiagramContentResponse, CanvasBgTheme } from '../type
 import { ApiClient } from '../api/client';
 import { useTheme, CANVAS_BG_CONFIG } from '../context/ThemeContext';
 import { normalizeSvg } from '../utils/svg-utils';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DiagramViewerModalProps {
   diagram: DiagramItem | null;
@@ -36,6 +37,7 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
   onToggleFavorite
 }) => {
   const { canvasBg, setCanvasBg } = useTheme();
+  const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'svg' | 'code'>('svg');
   const [copied, setCopied] = useState(false);
@@ -125,7 +127,7 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                         ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 shadow-sm'
                         : 'bg-dark-base border-dark-border text-dark-muted hover:text-amber-400 hover:bg-dark-hover'
                     }`}
-                    title={diagram.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    title={diagram.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
                   >
                     <Star className={`w-4 h-4 ${diagram.isFavorite ? 'fill-amber-400' : ''}`} />
                   </button>
@@ -158,7 +160,7 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Vector SVG</span>
+                <span>{t('tabVectorSvg')}</span>
               </button>
               <button
                 type="button"
@@ -170,7 +172,7 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                 }`}
               >
                 <Code2 className="w-3.5 h-3.5" />
-                <span>Diagram Code</span>
+                <span>{t('tabDiagramCode')}</span>
               </button>
             </div>
 
@@ -181,7 +183,7 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                   type="button"
                   onClick={() => setShowBgSelector(!showBgSelector)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-dark-base border border-dark-border hover:bg-dark-hover text-dark-text hover:text-white transition-all"
-                  title="Change Background Contrast"
+                  title={t('canvasContrast')}
                 >
                   <Palette className="w-3.5 h-3.5" />
                   <span className="hidden md:inline">{currentBgConfig.label}</span>
@@ -191,7 +193,7 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                 {showBgSelector && (
                   <div className="absolute top-11 right-0 w-44 rounded-xl bg-dark-card border border-dark-border shadow-2xl p-1.5 flex flex-col gap-1 z-40">
                     <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-dark-muted">
-                      Preview Contrast
+                      {t('canvasContrast')}
                     </div>
                     {Object.entries(CANVAS_BG_CONFIG).map(([key, cfg]) => (
                       <button
@@ -222,10 +224,10 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                 onOpenCanvas(diagram);
               }}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-brand-primary text-white hover:bg-brand-hover shadow-md shadow-brand-primary/20 transition-all hover:scale-[1.02]"
-              title="Open full interactive canvas with editor"
+              title={t('editCanvasTooltip')}
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              <span>Canvas Editor</span>
+              <span>{t('canvasEditorBtn')}</span>
             </button>
 
             {/* Copy MMD */}
@@ -234,10 +236,10 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
               onClick={handleCopyCode}
               disabled={!content?.code}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-dark-base border border-dark-border hover:bg-dark-hover text-dark-text hover:text-white transition-all disabled:opacity-50"
-              title="Copy source .mmd code"
+              title={t('btnCopyCode')}
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Copied!' : 'Copy .mmd'}</span>
+              <span>{copied ? t('btnCopied') : t('btnCopyCode')}</span>
             </button>
 
             {/* Download SVG */}
@@ -246,10 +248,10 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
               onClick={handleDownloadSvg}
               disabled={!displayedSvg}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-dark-base border border-dark-border hover:bg-dark-hover text-dark-text hover:text-white transition-all disabled:opacity-50"
-              title="Download compiled SVG file"
+              title={t('btnDownload')}
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Download</span>
+              <span>{t('btnDownload')}</span>
             </button>
 
             {/* Delete Diagram */}
@@ -260,7 +262,7 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                 onDelete(diagram);
               }}
               className="p-2 rounded-xl text-dark-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-              title="Delete diagram"
+              title={t('deleteDiagramTooltip')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -281,7 +283,7 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
           {loading ? (
             <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-dark-muted">
               <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-              <span className="text-sm">Loading diagram details...</span>
+              <span className="text-sm">{t('loadingDiagram')}</span>
             </div>
           ) : activeTab === 'svg' ? (
             <div className={`w-full h-full min-h-[400px] p-6 flex items-center justify-center overflow-auto transition-colors duration-200 ${currentBgConfig.className}`}>
@@ -293,13 +295,13 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                   }}
                 />
               ) : (
-                <p className="text-sm text-dark-muted">No SVG preview found.</p>
+                <p className="text-sm text-dark-muted">{t('noSvgPreview')}</p>
               )}
             </div>
           ) : (
             <div className="w-full h-full bg-dark-base p-6 font-mono text-xs overflow-auto">
               <pre className="text-emerald-300 leading-relaxed select-text">
-                {content?.code || 'No source code available.'}
+                {content?.code || t('noSourceCodeAvailable')}
               </pre>
             </div>
           )}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Play, Loader2, AlertCircle, FileCode, Sparkles, Folder, Palette } from 'lucide-react';
 import type { MermaidTheme } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NewDiagramModalProps {
   isOpen: boolean;
@@ -65,19 +66,13 @@ const TEMPLATES = [
   }
 ];
 
-const THEME_OPTIONS: Array<{ id: MermaidTheme; label: string }> = [
-  { id: 'dark', label: 'Dark (Recommended)' },
-  { id: 'default', label: 'Default' },
-  { id: 'neutral', label: 'Neutral' },
-  { id: 'forest', label: 'Forest' }
-];
-
 export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
   isOpen,
   currentFolder,
   onClose,
   onSubmit
 }) => {
+  const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState<MermaidTheme>('dark');
   const [code, setCode] = useState(TEMPLATES[0].code);
@@ -85,6 +80,13 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const THEME_OPTIONS: Array<{ id: MermaidTheme; label: string }> = [
+    { id: 'dark', label: `${t('themeDark')} (${t('btnSaveChanges') ? 'Dark' : ''})` },
+    { id: 'default', label: t('themeDefault') },
+    { id: 'neutral', label: t('themeNeutral') },
+    { id: 'forest', label: t('themeForest') }
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,10 +123,10 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
               <FileCode className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">Create New Diagram</h3>
+              <h3 className="text-base font-semibold text-white">{t('modalNewDiagramTitle')}</h3>
               <p className="text-xs text-dark-muted flex items-center gap-1.5 mt-0.5">
                 <Folder className="w-3 h-3 text-dark-muted" />
-                Target folder: <span className="font-mono text-white">{currentFolder ? `/${currentFolder}` : '/ (root)'}</span>
+                {t('targetFolder')} <span className="font-mono text-white">{currentFolder ? `/${currentFolder}` : '/ (root)'}</span>
               </p>
             </div>
           </div>
@@ -144,14 +146,14 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2">
-                Diagram Title
+                {t('diagramTitleLabel')}
               </label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Authentication Flow Architecture"
+                placeholder={t('diagramTitlePlaceholder')}
                 className="w-full px-4 py-2.5 rounded-xl bg-dark-base border border-dark-border text-white placeholder-dark-muted/60 text-sm focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors"
               />
             </div>
@@ -159,16 +161,16 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2 flex items-center gap-1.5">
                 <Palette className="w-3.5 h-3.5" />
-                Diagram Theme
+                {t('diagramThemeLabel')}
               </label>
               <select
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as MermaidTheme)}
                 className="w-full px-3 py-2.5 rounded-xl bg-dark-base border border-dark-border text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
               >
-                {THEME_OPTIONS.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
+                {THEME_OPTIONS.map((tOpt) => (
+                  <option key={tOpt.id} value={tOpt.id}>
+                    {tOpt.label}
                   </option>
                 ))}
               </select>
@@ -180,7 +182,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-dark-muted flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-brand-glow" />
-                Quick Templates
+                {t('quickTemplatesLabel')}
               </label>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -200,7 +202,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
           {/* Code Editor */}
           <div className="flex-1 flex flex-col min-h-[220px]">
             <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2">
-              Diagram Source Code (.mmd)
+              {t('diagramSourceCodeLabel')}
             </label>
             <textarea
               required
@@ -210,7 +212,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
                 setCode(e.target.value);
                 if (errorMessage) setErrorMessage(null);
               }}
-              placeholder="Type your diagram syntax here..."
+              placeholder={t('diagramSourceCodePlaceholder')}
               className="w-full flex-1 px-4 py-3 rounded-xl bg-dark-base border border-dark-border text-emerald-300 font-mono text-xs leading-relaxed focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors resize-none"
               spellCheck={false}
             />
@@ -223,7 +225,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
                 <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-400 mb-1">
-                    Syntax Error (422)
+                    {t('syntaxErrorTitle')}
                   </h4>
                   <pre className="text-xs font-mono text-rose-200/90 whitespace-pre-wrap bg-rose-950/40 p-2.5 rounded-lg border border-rose-500/20 overflow-x-auto">
                     {errorMessage}
@@ -241,7 +243,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
               disabled={loading}
               className="px-4 py-2 rounded-xl text-sm font-medium bg-transparent text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
             >
-              Cancel
+              {t('btnCancel')}
             </button>
 
             <button
@@ -252,12 +254,12 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Compiling with CLI...</span>
+                  <span>{t('btnCompiling')}</span>
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  <span>Compile & Save</span>
+                  <span>{t('btnCompileAndSave')}</span>
                 </>
               )}
             </button>

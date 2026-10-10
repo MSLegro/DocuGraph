@@ -2,10 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+html.theme-dark-tokyo {
+  --color-bg-base: 18 19 28;       /* #12131C */
+  --color-bg-card: 26 27 38;       /* #1A1B26 */
+  --color-border: 42 44 63;        /* #2A2C3F */
+  --color-bg-hover: 35 37 54;      /* #232536 */
+  --color-text-muted: 139 144 165; /* #8B90A5 */
+  --color-text-main: 241 243 249;  /* #F1F3F9 */
+}
+
+html.theme-dark-slate {
+  --color-bg-base: 15 23 42;       /* #0F172A */
+  --color-bg-card: 30 41 59;       /* #1E293B */
+  --color-border: 51 65 85;        /* #334155 */
+  --color-bg-hover: 45 59 82;      /* #2D3B52 */
+  --color-text-muted: 148 163 184; /* #94A3B8 */
+  --color-text-main: 248 250 252;  /* #F8FAFC */
+}
+
+html.theme-light-slate {
+  --color-bg-base: 248 250 252;    /* #F8FAFC - crisp light background */
+  --color-bg-card: 255 255 255;    /* #FFFFFF - pure white cards */
+  --color-border: 226 232 240;     /* #E2E8F0 - crisp light border */
+  --color-bg-hover: 241 245 249;   /* #F1F5F9 - soft hover */
+  --color-text-muted: 100 116 139; /* #64748B - accessible, legible slate-500 */
+  --color-text-main: 15 23 42;     /* #0F172A - dark slate-900 body text */
+}
+
 @layer base {
   body {
-    background-color: #12131C;
-    color: #F1F3F9;
+    background-color: rgb(var(--color-bg-base));
+    color: rgb(var(--color-text-main));
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
@@ -16,16 +45,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #12131C;
+  background: rgb(var(--color-bg-base));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2A2C3F;
+  background: rgb(var(--color-border));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3E425E;
+  background: rgb(var(--color-text-muted));
 }
 
 /* Technical grid background for SVG viewer */
@@ -50,44 +79,49 @@
     linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
 }
 
-/* App Theme overrides */
-html.theme-dark-slate body {
-  background-color: #0F172A;
-  color: #F8FAFC;
+/* Light Slate Theme Specific Enhancements for Crystal-Clear Contrast */
+html.theme-light-slate {
+  color-scheme: light;
 }
 
-html.theme-light-slate body {
-  background-color: #F8FAFC;
-  color: #0F172A;
-}
-
-html.theme-light-slate .bg-dark-base {
-  background-color: #F1F5F9;
-  color: #0F172A;
-}
-
+/* Card elevations in light theme */
 html.theme-light-slate .bg-dark-card {
-  background-color: #FFFFFF;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Standalone headings in light theme */
+html.theme-light-slate h1,
+html.theme-light-slate h2,
+html.theme-light-slate h3,
+html.theme-light-slate h4 {
   color: #0F172A;
 }
 
-html.theme-light-slate .border-dark-border {
-  border-color: #E2E8F0;
+/* Ensure text-white on non-colored backgrounds flips to dark slate, while retaining white text on primary/accent buttons */
+html.theme-light-slate .text-white:not([class*="bg-brand"]):not([class*="bg-indigo"]):not([class*="bg-rose"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-gradient"]) {
+  color: #0F172A;
 }
 
-html.theme-light-slate .hover\:bg-dark-hover:hover {
-  background-color: #F8FAFC;
+/* Primary and colored buttons keep crisp white text */
+html.theme-light-slate [class*="bg-brand"] .text-white,
+html.theme-light-slate [class*="bg-brand"].text-white,
+html.theme-light-slate button.bg-brand-primary {
+  color: #FFFFFF !important;
 }
 
-html.theme-light-slate .text-white {
-  color: #0F172A !important;
+/* Text inputs and dropdowns in light theme */
+html.theme-light-slate input,
+html.theme-light-slate select,
+html.theme-light-slate textarea {
+  color: #0F172A;
 }
 
-html.theme-light-slate .text-dark-muted {
-  color: #64748B;
+html.theme-light-slate input::placeholder,
+html.theme-light-slate textarea::placeholder {
+  color: #94A3B8;
 }
 
-html.theme-light-slate .bg-dark-hover {
-  background-color: #E2E8F0;
+/* Code editor text contrast in light theme */
+html.theme-light-slate textarea.text-emerald-300 {
+  color: #047857; /* Deep emerald-700 with high contrast on light backgrounds */
 }
-

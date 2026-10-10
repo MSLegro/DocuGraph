@@ -9,18 +9,19 @@ module.exports = {
     extend: {
       colors: {
         dark: {
-          base: '#12131C',
-          card: '#1A1B26',
-          border: '#2A2C3F',
-          hover: '#232536',
-          muted: '#8B90A5',
-          text: '#F1F3F9'
+          base: 'rgb(var(--color-bg-base) / <alpha-value>)',
+          card: 'rgb(var(--color-bg-card) / <alpha-value>)',
+          border: 'rgb(var(--color-border) / <alpha-value>)',
+          hover: 'rgb(var(--color-bg-hover) / <alpha-value>)',
+          muted: 'rgb(var(--color-text-muted) / <alpha-value>)',
+          text: 'rgb(var(--color-text-main) / <alpha-value>)'
         },
         brand: {
           primary: '#6366F1',
           hover: '#4F46E5',
           cyan: '#06B6D4',
-          accent: '#7C3AED'
+          accent: '#7C3AED',
+          glow: '#818CF8'
         }
       },
       fontFamily: {

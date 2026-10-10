@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, FolderPlus, Loader2, Folder } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NewFolderModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export const NewFolderModal: React.FC<NewFolderModalProps> = ({
   onClose,
   onSubmit
 }) => {
+  const { t } = useLanguage();
   const [folderName, setFolderName] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -52,10 +54,10 @@ export const NewFolderModal: React.FC<NewFolderModalProps> = ({
               <FolderPlus className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">Create New Folder</h3>
+              <h3 className="text-base font-semibold text-white">{t('modalNewFolderTitle')}</h3>
               <p className="text-xs text-dark-muted flex items-center gap-1.5 mt-0.5">
                 <Folder className="w-3 h-3 text-dark-muted" />
-                Inside: <span className="font-mono text-white">{currentFolder ? `/${currentFolder}` : '/ (root)'}</span>
+                {t('insideFolder')} <span className="font-mono text-white">{currentFolder ? `/${currentFolder}` : '/ (root)'}</span>
               </p>
             </div>
           </div>
@@ -73,7 +75,7 @@ export const NewFolderModal: React.FC<NewFolderModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2">
-              Folder Name
+              {t('folderNameLabel')}
             </label>
             <input
               type="text"
@@ -84,7 +86,7 @@ export const NewFolderModal: React.FC<NewFolderModalProps> = ({
                 setFolderName(e.target.value);
                 if (errorMessage) setErrorMessage(null);
               }}
-              placeholder="e.g. backend-microservices"
+              placeholder={t('folderNamePlaceholder')}
               className="w-full px-4 py-2.5 rounded-xl bg-dark-base border border-dark-border text-white placeholder-dark-muted/60 text-sm focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors"
             />
           </div>
@@ -102,7 +104,7 @@ export const NewFolderModal: React.FC<NewFolderModalProps> = ({
               disabled={loading}
               className="px-4 py-2 rounded-xl text-sm font-medium text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
             >
-              Cancel
+              {t('btnCancel')}
             </button>
 
             <button
@@ -113,10 +115,10 @@ export const NewFolderModal: React.FC<NewFolderModalProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Creating...</span>
+                  <span>{t('btnCreating')}</span>
                 </>
               ) : (
-                <span>Create Folder</span>
+                <span>{t('btnCreateFolder')}</span>
               )}
             </button>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Loader2, Trash2, Folder } from 'lucide-react';
 import type { FolderItem } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DeleteFolderModalProps {
   folder: FolderItem | null;
@@ -13,6 +14,7 @@ export const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
   onClose,
   onConfirm
 }) => {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
 
   if (!folder) return null;
@@ -38,26 +40,28 @@ export const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-white">Delete Folder</h3>
-            <p className="text-xs text-dark-muted">This will delete the folder and its contents.</p>
+            <h3 className="text-base font-semibold text-white">{t('modalDeleteFolderTitle')}</h3>
+            <p className="text-xs text-dark-muted">{t('modalDeleteFolderSubtitle')}</p>
           </div>
         </div>
 
         <p className="text-sm text-dark-text/90 leading-relaxed">
-          Are you sure you want to permanently delete{' '}
+          {t('modalDeleteFolderConfirm')}{' '}
           <strong className="text-white">"{folder.name}"</strong>?
         </p>
 
         {folder.diagramCount > 0 && (
           <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
-            ⚠️ Warning: This folder contains <strong>{folder.diagramCount}</strong> diagram{folder.diagramCount > 1 ? 's' : ''}. All source files, metadata, and compiled SVGs inside will be permanently deleted.
+            {folder.diagramCount === 1
+              ? t('modalDeleteFolderWarningSingular')
+              : t('modalDeleteFolderWarningCount', { count: folder.diagramCount })}
           </div>
         )}
 
         <div className="p-3 rounded-xl bg-dark-base border border-dark-border/80 font-mono text-xs text-dark-muted space-y-1">
           <p className="text-rose-400/90 font-medium flex items-center gap-1.5">
             <Folder className="w-3.5 h-3.5" />
-            Relative storage path:
+            {t('relativeStoragePath')}
           </p>
           <p className="text-white">/{folder.relativePath}</p>
         </div>
@@ -69,7 +73,7 @@ export const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
             disabled={loading}
             className="px-4 py-2 rounded-xl text-sm font-medium text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
           >
-            Cancel
+            {t('btnCancel')}
           </button>
 
           <button
@@ -81,12 +85,12 @@ export const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Deleting...</span>
+                <span>{t('btnDeleting')}</span>
               </>
             ) : (
               <>
                 <Trash2 className="w-4 h-4" />
-                <span>Delete Folder</span>
+                <span>{t('btnDeleteFolder')}</span>
               </>
             )}
           </button>

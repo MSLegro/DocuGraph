@@ -25,6 +25,7 @@ import type { DiagramItem, DiagramContentResponse, MermaidTheme, CanvasBgTheme }
 import { ApiClient } from '../api/client';
 import { useTheme, CANVAS_BG_CONFIG } from '../context/ThemeContext';
 import { normalizeSvg } from '../utils/svg-utils';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DiagramCanvasEditorProps {
   diagram: DiagramItem | null;
@@ -33,20 +34,6 @@ interface DiagramCanvasEditorProps {
   onToggleFavorite?: (diagram: DiagramItem) => void;
 }
 
-const DIAGRAM_SNIPPETS = [
-  { label: '+ Node', code: '  A[Node Description]\n' },
-  { label: '+ Decision', code: '  B{Condition?}\n' },
-  { label: '+ Database', code: '  DB[(Database Cache)]\n' },
-  { label: '+ Subgraph', code: '  subgraph GroupName\n    S1[Service 1]\n  end\n' }
-];
-
-const DIAGRAM_THEMES: Array<{ id: MermaidTheme; label: string }> = [
-  { id: 'dark', label: 'Dark' },
-  { id: 'default', label: 'Default' },
-  { id: 'neutral', label: 'Neutral' },
-  { id: 'forest', label: 'Forest' }
-];
-
 export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
   diagram,
   onClose,
@@ -54,6 +41,21 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
   onToggleFavorite
 }) => {
   const { canvasBg, setCanvasBg } = useTheme();
+  const { t } = useLanguage();
+
+  const DIAGRAM_SNIPPETS = [
+    { label: t('snippetNode'), code: '  A[Node Description]\n' },
+    { label: t('snippetDecision'), code: '  B{Condition?}\n' },
+    { label: t('snippetDatabase'), code: '  DB[(Database Cache)]\n' },
+    { label: t('snippetSubgraph'), code: '  subgraph GroupName\n    S1[Service 1]\n  end\n' }
+  ];
+
+  const DIAGRAM_THEMES: Array<{ id: MermaidTheme; label: string }> = [
+    { id: 'dark', label: t('themeDark') },
+    { id: 'default', label: t('themeDefault') },
+    { id: 'neutral', label: t('themeNeutral') },
+    { id: 'forest', label: t('themeForest') }
+  ];
 
   const [title, setTitle] = useState('');
   const [code, setCode] = useState('');
@@ -471,7 +473,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             type="button"
             onClick={() => setIsEditorOpen(!isEditorOpen)}
             className="p-2 rounded-lg text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
-            title={isEditorOpen ? 'Collapse Editor Panel' : 'Expand Editor Panel'}
+            title={isEditorOpen ? t('collapseEditorPanel') : t('expandEditorPanel')}
           >
             {isEditorOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5 text-brand-glow" />}
           </button>
@@ -483,16 +485,16 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="bg-transparent font-semibold text-white text-base hover:bg-dark-base/50 focus:bg-dark-base px-2 py-1 rounded-lg border border-transparent focus:border-brand-primary outline-none transition-colors truncate max-w-sm sm:max-w-md"
-              placeholder="Diagram Title..."
+              placeholder={t('diagramTitlePlaceholder')}
             />
 
             {hasUnsavedChanges ? (
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
-                Unsaved
+                {t('statusUnsaved')}
               </span>
             ) : (
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                Saved
+                {t('statusSaved')}
               </span>
             )}
 
@@ -505,7 +507,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
                     ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 shadow-sm'
                     : 'bg-dark-base border-dark-border text-dark-muted hover:text-amber-400 hover:bg-dark-hover'
                 }`}
-                title={diagram.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                title={diagram.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
               >
                 <Star className={`w-3.5 h-3.5 ${diagram.isFavorite ? 'fill-amber-400' : ''}`} />
               </button>
@@ -520,11 +522,11 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             value={diagramTheme}
             onChange={(e) => setDiagramTheme(e.target.value as MermaidTheme)}
             className="bg-dark-base border border-dark-border text-xs text-dark-text rounded-lg px-2.5 py-1.5 focus:border-brand-primary outline-none"
-            title="Diagram Theme"
+            title={t('diagramThemeLabel')}
           >
-            {DIAGRAM_THEMES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
+            {DIAGRAM_THEMES.map((tTheme) => (
+              <option key={tTheme.id} value={tTheme.id}>
+                {tTheme.label}
               </option>
             ))}
           </select>
@@ -535,10 +537,10 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             onClick={handleCopyCode}
             disabled={!code}
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-dark-base border border-dark-border hover:bg-dark-hover text-dark-text hover:text-white transition-all disabled:opacity-50"
-            title="Copy diagram code"
+            title={t('btnCopyCode')}
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copied ? 'Copied' : 'Copy .mmd'}</span>
+            <span>{copied ? t('btnCopied') : t('btnCopyCode')}</span>
           </button>
 
           {/* Download SVG */}
@@ -547,10 +549,10 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             onClick={handleDownloadSvg}
             disabled={!svgContent}
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-dark-base border border-dark-border hover:bg-dark-hover text-dark-text hover:text-white transition-all disabled:opacity-50"
-            title="Download vector SVG"
+            title={t('btnDownload')}
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Download</span>
+            <span>{t('btnDownload')}</span>
           </button>
 
           {/* Save & Recompile */}
@@ -559,17 +561,17 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             onClick={handleSave}
             disabled={saving || !title.trim() || !code.trim()}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-brand-primary text-white hover:bg-brand-hover shadow-lg shadow-brand-primary/20 disabled:opacity-50 transition-all hover:scale-[1.02]"
-            title="Save and compile (Ctrl+S)"
+            title={t('btnSaveCompile')}
           >
             {saving ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Compiling...</span>
+                <span>{t('btnCompiling')}</span>
               </>
             ) : (
               <>
                 <Save className="w-3.5 h-3.5" />
-                <span>Save (Ctrl+S)</span>
+                <span>{t('btnSaveCompile')}</span>
               </>
             )}
           </button>
@@ -579,7 +581,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             type="button"
             onClick={onClose}
             className="p-2 rounded-lg text-dark-muted hover:text-white hover:bg-dark-hover transition-colors ml-1"
-            title="Exit Canvas (Esc)"
+            title={t('exitCanvasTooltip')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -595,7 +597,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             <div className="p-3 border-b border-dark-border/80 flex items-center justify-between bg-dark-base/40">
               <span className="text-xs font-semibold uppercase tracking-wider text-dark-muted flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-brand-glow" />
-                Diagram Code Editor
+                {t('canvasCodeEditorTitle')}
               </span>
 
               {/* Snippets pills */}
@@ -622,7 +624,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
                   if (errorMessage) setErrorMessage(null);
                 }}
                 spellCheck={false}
-                placeholder="Type your diagram syntax here..."
+                placeholder={t('diagramSourceCodePlaceholder')}
                 className="w-full h-full p-3 bg-transparent text-emerald-300 font-mono text-xs leading-relaxed focus:outline-none resize-none selection:bg-brand-primary/40 selection:text-white"
               />
             </div>
@@ -634,7 +636,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
                   <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-wider text-rose-400 mb-1">
-                      Syntax Error (422)
+                      {t('syntaxErrorTitle')}
                     </p>
                     <pre className="text-xs font-mono text-rose-200/90 whitespace-pre-wrap bg-rose-950/50 p-2 rounded border border-rose-500/20 overflow-x-auto">
                       {errorMessage}
@@ -646,8 +648,8 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
 
             {/* Status Footer */}
             <div className="px-4 py-2 border-t border-dark-border/60 bg-dark-card flex items-center justify-between text-[11px] text-dark-muted">
-              <span>Press <kbd className="px-1.5 py-0.5 rounded bg-dark-base border border-dark-border font-mono text-white">Ctrl+S</kbd> to compile</span>
-              <span className="font-mono text-dark-muted/80">{code.split('\n').length} lines</span>
+              <span>{t('pressCtrlSToCompile')}</span>
+              <span className="font-mono text-dark-muted/80">{code.split('\n').length} {t('linesCount')}</span>
             </div>
           </aside>
         )}
@@ -667,7 +669,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
           {loading ? (
             <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-dark-muted">
               <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-              <span className="text-sm">Loading canvas...</span>
+              <span className="text-sm">{t('loadingCanvas')}</span>
             </div>
           ) : (
             <div
@@ -695,7 +697,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
                 />
               ) : (
                 <div className="p-8 rounded-2xl bg-dark-card border border-dark-border text-center">
-                  <p className="text-sm text-dark-muted">No SVG output available. Write code and press Save.</p>
+                  <p className="text-sm text-dark-muted">{t('noSvgAvailableCanvas')}</p>
                 </div>
               )}
             </div>
@@ -714,7 +716,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               className={`p-2 rounded-xl transition-colors ${
                 isPanMode ? 'bg-brand-primary text-white' : 'text-dark-muted hover:text-white hover:bg-dark-hover'
               }`}
-              title="Pan Tool"
+              title={t('panToolTooltip')}
             >
               <Hand className="w-4 h-4" />
             </button>
@@ -726,7 +728,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               type="button"
               onClick={handleZoomOut}
               className="p-2 rounded-xl text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
-              title="Zoom Out"
+              title={t('zoomOutTooltip')}
             >
               <ZoomOut className="w-4 h-4" />
             </button>
@@ -741,7 +743,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               type="button"
               onClick={handleZoomIn}
               className="p-2 rounded-xl text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
-              title="Zoom In"
+              title={t('zoomInTooltip')}
             >
               <ZoomIn className="w-4 h-4" />
             </button>
@@ -753,7 +755,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               type="button"
               onClick={handleResetZoom}
               className="p-2 rounded-xl text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
-              title="Reset View 1:1"
+              title={t('resetViewTooltip')}
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -763,7 +765,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               type="button"
               onClick={handleFitToScreen}
               className="p-2 rounded-xl text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
-              title="Fit to Screen"
+              title={t('fitToScreenTooltip')}
             >
               <Maximize className="w-4 h-4" />
             </button>
@@ -775,7 +777,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               type="button"
               onClick={toggleFullscreen}
               className="p-2 rounded-xl text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
-              title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+              title={isFullscreen ? t('exitFullScreenTooltip') : t('fullScreenTooltip')}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
@@ -788,7 +790,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
                 type="button"
                 onClick={() => setShowBgSelector(!showBgSelector)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
-                title="Change Canvas Background for Contrast"
+                title={t('canvasContrast')}
               >
                 <Palette className="w-4 h-4" />
                 <span className="hidden sm:inline">{currentBgConfig.label}</span>
@@ -798,7 +800,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
               {showBgSelector && (
                 <div className="absolute bottom-12 right-0 w-44 rounded-xl bg-dark-card border border-dark-border shadow-2xl p-1.5 flex flex-col gap-1 z-40">
                   <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-dark-muted">
-                    Canvas Contrast
+                    {t('canvasContrast')}
                   </div>
                   {Object.entries(CANVAS_BG_CONFIG).map(([key, cfg]) => (
                     <button
@@ -823,9 +825,9 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
 
           {/* Help navigation hint */}
           <div className="absolute bottom-6 left-6 z-30 hidden lg:flex items-center gap-2 text-[11px] text-dark-muted/80 bg-dark-card/75 backdrop-blur px-3 py-1.5 rounded-xl border border-dark-border/60 pointer-events-none">
-            <span>Drag to Pan</span>
+            <span>{t('dragToPanHint')}</span>
             <span>•</span>
-            <span>Scroll wheel zooms towards cursor</span>
+            <span>{t('wheelZoomHint')}</span>
           </div>
         </main>
       </div>

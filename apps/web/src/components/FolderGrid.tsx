@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRight, Edit3, Trash2, Star } from 'lucide-react';
 import type { FolderItem } from '../types';
 import { getFolderTheme } from '../utils/folder-icons';
+import { useLanguage } from '../context/LanguageContext';
 
 interface FolderGridProps {
   folders: FolderItem[];
@@ -18,12 +19,14 @@ export const FolderGrid: React.FC<FolderGridProps> = ({
   onDeleteFolder,
   onToggleFavorite
 }) => {
+  const { t } = useLanguage();
+
   if (folders.length === 0) return null;
 
   return (
     <div className="mb-8">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-dark-muted mb-3.5 flex items-center gap-2">
-        <span>Folders</span>
+        <span>{t('foldersTitle')}</span>
         <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-dark-border text-dark-muted">
           {folders.length}
         </span>
@@ -45,11 +48,11 @@ export const FolderGrid: React.FC<FolderGridProps> = ({
                   <FolderIcon className={`w-5 h-5 ${theme.colorClass}`} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-medium text-dark-text truncate group-hover:text-white transition-colors">
+                  <h3 className="text-sm font-semibold text-dark-text truncate group-hover:text-brand-primary transition-colors">
                     {folder.name}
                   </h3>
                   <p className="text-xs text-dark-muted">
-                    {folder.diagramCount} {folder.diagramCount === 1 ? 'diagram' : 'diagrams'}
+                    {folder.diagramCount} {folder.diagramCount === 1 ? t('diagramCountSingular') : t('diagramCountPlural')}
                   </p>
                 </div>
               </div>
@@ -68,7 +71,7 @@ export const FolderGrid: React.FC<FolderGridProps> = ({
                       ? 'text-amber-400 hover:text-amber-300'
                       : 'text-dark-muted/60 opacity-0 group-hover:opacity-100 hover:text-amber-400 hover:bg-dark-base'
                   }`}
-                  title={folder.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  title={folder.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
                 >
                   <Star className={`w-3.5 h-3.5 ${folder.isFavorite ? 'fill-amber-400' : ''}`} />
                 </button>
@@ -80,8 +83,8 @@ export const FolderGrid: React.FC<FolderGridProps> = ({
                       e.stopPropagation();
                       onRenameFolder(folder);
                     }}
-                    className="p-1.5 rounded-lg text-dark-muted hover:text-white hover:bg-dark-base transition-colors"
-                    title="Rename folder"
+                    className="p-1.5 rounded-lg text-dark-muted hover:text-dark-text hover:bg-dark-base transition-colors"
+                    title={t('renameFolder')}
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
@@ -93,13 +96,13 @@ export const FolderGrid: React.FC<FolderGridProps> = ({
                       onDeleteFolder(folder);
                     }}
                     className="p-1.5 rounded-lg text-dark-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                    title="Delete folder"
+                    title={t('deleteFolder')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                <ChevronRight className="w-4 h-4 text-dark-muted group-hover:text-white group-hover:translate-x-0.5 transition-all group-hover:hidden" />
+                <ChevronRight className="w-4 h-4 text-dark-muted group-hover:text-dark-text group-hover:translate-x-0.5 transition-all group-hover:hidden" />
               </div>
             </div>
           );
