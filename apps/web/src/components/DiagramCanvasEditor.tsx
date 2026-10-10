@@ -72,7 +72,11 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
 
   // Pan & Zoom state
   const [scale, setScale] = useState(1);
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const panRef = useRef(pan);
+  panRef.current = pan;
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -217,41 +221,38 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
         }
       } catch {}
 
-      // 4. Try getBoundingClientRect relative to current scale
+      // 4. Try getBoundingClientRect relative to scale
       const rect = svgEl.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        return { width: rect.width / (scale || 1), height: rect.height / (scale || 1) };
+        const curScale = scaleRef.current || 1;
+        return { width: rect.width / curScale, height: rect.height / curScale };
       }
     }
 
     return { width: 800, height: 600 };
-  }, [scale]);
+  }, []);
 
   /**
-   * Zooms inward or outward based on the center of the diagram
+   * Zooms inward or outward anchored strictly to the center of the diagram
    */
-  const zoomFromCenter = useCallback(
-    (factor: number) => {
-      if (!canvasRef.current) return;
-      const rect = canvasRef.current.getBoundingClientRect();
-      const viewWidth = rect.width;
-      const viewHeight = rect.height;
+  const zoomFromCenter = useCallback((factor: number) => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const viewWidth = rect.width;
+    const viewHeight = rect.height;
 
-      // Current screen center coordinates of the diagram
-      const currentCenterX = pan.x + (viewWidth / 2) * scale;
-      const currentCenterY = pan.y + (viewHeight / 2) * scale;
+    setScale((currentScale) => {
+      const newScale = Math.min(Math.max(currentScale * factor, 0.15), 6);
 
-      const newScale = Math.min(Math.max(scale * factor, 0.15), 6);
+      // Symmetrical center formula: keeps diagram center fixed on screen
+      setPan((currentPan) => ({
+        x: currentPan.x + (viewWidth / 2) * (currentScale - newScale),
+        y: currentPan.y + (viewHeight / 2) * (currentScale - newScale)
+      }));
 
-      // Keep the center of the diagram anchored at its exact screen position
-      const newPanX = currentCenterX - (currentCenterX - pan.x) * (newScale / scale);
-      const newPanY = currentCenterY - (currentCenterY - pan.y) * (newScale / scale);
-
-      setScale(newScale);
-      setPan({ x: newPanX, y: newPanY });
-    },
-    [scale, pan]
-  );
+      return newScale;
+    });
+  }, []);
 
   /**
    * Zoom In (+) anchored to the center of the diagram
@@ -270,10 +271,10 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
   /**
    * Reset (1:1) - restores scale to 100% and centers coordinates
    */
-  const handleResetZoom = () => {
+  const handleResetZoom = useCallback(() => {
     setScale(1);
     setPan({ x: 0, y: 0 });
-  };
+  }, []);
 
   /**
    * Fit to Screen (Maximize) - automatically fits diagram to viewport and centers it
@@ -308,18 +309,23 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
     setPan({ x: centerPanX, y: centerPanY });
   }, [getDiagramDimensions]);
 
-  // Automatically fit and center diagram on initial open
+  // Track which diagram was already fitted so we only fit ONCE on initial open
+  const fittedDiagramIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (svgContent && !loading) {
-      const timer = setTimeout(() => {
-        handleFitToScreen();
-      }, 100);
-      return () => clearTimeout(timer);
+    if (svgContent && !loading && diagram?.id) {
+      if (fittedDiagramIdRef.current !== diagram.id) {
+        fittedDiagramIdRef.current = diagram.id;
+        const timer = setTimeout(() => {
+          handleFitToScreen();
+        }, 100);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [diagram?.id, loading, handleFitToScreen]);
+  }, [svgContent, loading, diagram?.id, handleFitToScreen]);
 
   /**
-   * Zoom anchored towards cursor position
+   * Zoom anchored towards cursor position on mouse wheel
    */
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -330,22 +336,25 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
     const mouseY = e.clientY - rect.top;
 
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-    const newScale = Math.min(Math.max(scale * zoomFactor, 0.15), 6);
 
-    // Pivot calculation so point under cursor stays fixed
-    const newPanX = mouseX - (mouseX - pan.x) * (newScale / scale);
-    const newPanY = mouseY - (mouseY - pan.y) * (newScale / scale);
+    setScale((currentScale) => {
+      const newScale = Math.min(Math.max(currentScale * zoomFactor, 0.15), 6);
 
-    setScale(newScale);
-    setPan({ x: newPanX, y: newPanY });
+      setPan((currentPan) => ({
+        x: mouseX - (mouseX - currentPan.x) * (newScale / currentScale),
+        y: mouseY - (mouseY - currentPan.y) * (newScale / currentScale)
+      }));
+
+      return newScale;
+    });
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0 || e.button === 1) {
       setIsDragging(true);
       dragStartRef.current = {
-        x: e.clientX - pan.x,
-        y: e.clientY - pan.y
+        x: e.clientX - panRef.current.x,
+        y: e.clientY - panRef.current.y
       };
     }
   };
@@ -626,7 +635,11 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
           )}
 
           {/* Floating Canvas Controls Toolbar */}
-          <div className="absolute bottom-6 right-6 z-30 flex items-center gap-1.5 bg-dark-card/90 backdrop-blur-md border border-dark-border p-1.5 rounded-2xl shadow-2xl">
+          <div
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="absolute bottom-6 right-6 z-30 flex items-center gap-1.5 bg-dark-card/90 backdrop-blur-md border border-dark-border p-1.5 rounded-2xl shadow-2xl"
+          >
             {/* Pan / Hand Mode Toggle */}
             <button
               type="button"
