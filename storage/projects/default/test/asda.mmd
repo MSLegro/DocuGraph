@@ -1,7 +1,0 @@
-graph TD
-    A[Client Request] --> B{API Gateway}
-    B -->|Authorized| C[DocuGraph Core]
-    B -->|Invalid| D[401 Unauthorized]
-    C --> E[(Local Storage)]
-    C --> F[Headless Chromium]
-    F --> G[Vector SVG Output]
