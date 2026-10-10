@@ -15,7 +15,8 @@ export type DiagramType =
   | 'block'
   | 'unknown';
 
-export type MermaidTheme = 'dark' | 'default' | 'neutral' | 'forest' | 'base';
+export type DiagramTheme = 'dark' | 'default' | 'neutral' | 'forest' | 'base';
+export type MermaidTheme = DiagramTheme;
 
 export interface DiagramMeta {
   id: string;

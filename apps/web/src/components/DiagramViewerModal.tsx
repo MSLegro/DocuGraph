@@ -170,7 +170,7 @@ export const DiagramViewerModal: React.FC<DiagramViewerModalProps> = ({
                 }`}
               >
                 <Code2 className="w-3.5 h-3.5" />
-                <span>Mermaid Code</span>
+                <span>Diagram Code</span>
               </button>
             </div>
 

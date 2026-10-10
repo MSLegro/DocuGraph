@@ -79,7 +79,7 @@ export async function buildServer() {
         // Syntax or compilation error -> 422 Unprocessable Entity
         return reply.status(422).send({
           success: false,
-          error: result.error || 'Mermaid compilation failed.'
+          error: result.error || 'Diagram compilation failed.'
         });
       }
 
@@ -239,7 +239,7 @@ export async function buildServer() {
       if (!result.success) {
         return reply.status(422).send({
           success: false,
-          error: result.error || 'Mermaid compilation failed.'
+          error: result.error || 'Diagram compilation failed.'
         });
       }
 

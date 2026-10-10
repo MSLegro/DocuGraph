@@ -60,7 +60,7 @@ export class DiagramService {
       return { success: false, error: 'Diagram title is required.' };
     }
     if (!code || !code.trim()) {
-      return { success: false, error: 'Mermaid code is required.' };
+      return { success: false, error: 'Diagram code is required.' };
     }
 
     const safeRelFolder = sanitizeFolderPath(folderPath);

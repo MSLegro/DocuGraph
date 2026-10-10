@@ -4,7 +4,7 @@
  */
 export function sanitizeMermaidError(rawError: string): string {
   if (!rawError) {
-    return 'Unknown Mermaid compilation error.';
+    return 'Unknown diagram compilation error.';
   }
 
   const lines = rawError.split('\n').map(l => l.trim()).filter(Boolean);
@@ -57,5 +57,5 @@ export function sanitizeMermaidError(rawError: string): string {
     return filtered.slice(0, 3).join('\n');
   }
 
-  return 'Mermaid compilation failed due to a syntax error.';
+  return 'Diagram compilation failed due to a syntax error.';
 }

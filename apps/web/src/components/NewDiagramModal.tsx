@@ -159,7 +159,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2 flex items-center gap-1.5">
                 <Palette className="w-3.5 h-3.5" />
-                Mermaid Theme
+                Diagram Theme
               </label>
               <select
                 value={theme}
@@ -197,10 +197,10 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
             </div>
           </div>
 
-          {/* Mermaid Code Editor */}
+          {/* Code Editor */}
           <div className="flex-1 flex flex-col min-h-[220px]">
             <label className="block text-xs font-semibold uppercase tracking-wider text-dark-muted mb-2">
-              Mermaid Source Code (.mmd)
+              Diagram Source Code (.mmd)
             </label>
             <textarea
               required
@@ -210,7 +210,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
                 setCode(e.target.value);
                 if (errorMessage) setErrorMessage(null);
               }}
-              placeholder="Type your Mermaid syntax here..."
+              placeholder="Type your diagram syntax here..."
               className="w-full flex-1 px-4 py-3 rounded-xl bg-dark-base border border-dark-border text-emerald-300 font-mono text-xs leading-relaxed focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors resize-none"
               spellCheck={false}
             />
@@ -223,7 +223,7 @@ export const NewDiagramModal: React.FC<NewDiagramModalProps> = ({
                 <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-400 mb-1">
-                    Mermaid Syntax Error (422)
+                    Syntax Error (422)
                   </h4>
                   <pre className="text-xs font-mono text-rose-200/90 whitespace-pre-wrap bg-rose-950/40 p-2.5 rounded-lg border border-rose-500/20 overflow-x-auto">
                     {errorMessage}

@@ -33,18 +33,18 @@ interface DiagramCanvasEditorProps {
   onToggleFavorite?: (diagram: DiagramItem) => void;
 }
 
-const MERMAID_SNIPPETS = [
+const DIAGRAM_SNIPPETS = [
   { label: '+ Node', code: '  A[Node Description]\n' },
   { label: '+ Decision', code: '  B{Condition?}\n' },
   { label: '+ Database', code: '  DB[(Database Cache)]\n' },
   { label: '+ Subgraph', code: '  subgraph GroupName\n    S1[Service 1]\n  end\n' }
 ];
 
-const MERMAID_THEMES: Array<{ id: MermaidTheme; label: string }> = [
-  { id: 'dark', label: 'Mermaid Dark' },
-  { id: 'default', label: 'Mermaid Default' },
-  { id: 'neutral', label: 'Mermaid Neutral' },
-  { id: 'forest', label: 'Mermaid Forest' }
+const DIAGRAM_THEMES: Array<{ id: MermaidTheme; label: string }> = [
+  { id: 'dark', label: 'Dark' },
+  { id: 'default', label: 'Default' },
+  { id: 'neutral', label: 'Neutral' },
+  { id: 'forest', label: 'Forest' }
 ];
 
 export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
@@ -60,7 +60,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
   const [initialCode, setInitialCode] = useState('');
   const [initialTitle, setInitialTitle] = useState('');
   const [svgContent, setSvgContent] = useState('');
-  const [mermaidTheme, setMermaidTheme] = useState<MermaidTheme>('dark');
+  const [diagramTheme, setDiagramTheme] = useState<MermaidTheme>('dark');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -103,7 +103,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
         setInitialCode(data.code);
         setSvgContent(normalizeSvg(data.svgContent));
         if (data.meta.theme) {
-          setMermaidTheme(data.meta.theme);
+          setDiagramTheme(data.meta.theme);
         }
         setLoading(false);
       })
@@ -134,13 +134,13 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
       title.trim(),
       code.trim(),
       diagram.folderPath,
-      mermaidTheme
+      diagramTheme
     );
 
     setSaving(false);
 
     if (!res.success) {
-      setErrorMessage(res.error || 'Mermaid compilation failed.');
+      setErrorMessage(res.error || 'Diagram compilation failed.');
     } else {
       if (res.svgContent) {
         setSvgContent(normalizeSvg(res.svgContent));
@@ -150,7 +150,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
       setErrorMessage(null);
       onSaved();
     }
-  }, [diagram, saving, title, code, mermaidTheme, onSaved]);
+  }, [diagram, saving, title, code, diagramTheme, onSaved]);
 
   // Keyboard shortcut Ctrl+S / Cmd+S
   useEffect(() => {
@@ -515,14 +515,14 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
-          {/* Mermaid Theme Selector */}
+          {/* Theme Selector */}
           <select
-            value={mermaidTheme}
-            onChange={(e) => setMermaidTheme(e.target.value as MermaidTheme)}
+            value={diagramTheme}
+            onChange={(e) => setDiagramTheme(e.target.value as MermaidTheme)}
             className="bg-dark-base border border-dark-border text-xs text-dark-text rounded-lg px-2.5 py-1.5 focus:border-brand-primary outline-none"
-            title="Mermaid Rendering Theme"
+            title="Diagram Theme"
           >
-            {MERMAID_THEMES.map((t) => (
+            {DIAGRAM_THEMES.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.label}
               </option>
@@ -535,7 +535,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             onClick={handleCopyCode}
             disabled={!code}
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-dark-base border border-dark-border hover:bg-dark-hover text-dark-text hover:text-white transition-all disabled:opacity-50"
-            title="Copy Mermaid code"
+            title="Copy diagram code"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copied ? 'Copied' : 'Copy .mmd'}</span>
@@ -595,12 +595,12 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
             <div className="p-3 border-b border-dark-border/80 flex items-center justify-between bg-dark-base/40">
               <span className="text-xs font-semibold uppercase tracking-wider text-dark-muted flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-brand-glow" />
-                Mermaid Code Editor
+                Diagram Code Editor
               </span>
 
               {/* Snippets pills */}
               <div className="flex items-center gap-1">
-                {MERMAID_SNIPPETS.map((snip) => (
+                {DIAGRAM_SNIPPETS.map((snip) => (
                   <button
                     key={snip.label}
                     type="button"
@@ -622,7 +622,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
                   if (errorMessage) setErrorMessage(null);
                 }}
                 spellCheck={false}
-                placeholder="Type your Mermaid syntax here..."
+                placeholder="Type your diagram syntax here..."
                 className="w-full h-full p-3 bg-transparent text-emerald-300 font-mono text-xs leading-relaxed focus:outline-none resize-none selection:bg-brand-primary/40 selection:text-white"
               />
             </div>
@@ -634,7 +634,7 @@ export const DiagramCanvasEditor: React.FC<DiagramCanvasEditorProps> = ({
                   <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-wider text-rose-400 mb-1">
-                      Mermaid Syntax Error (422)
+                      Syntax Error (422)
                     </p>
                     <pre className="text-xs font-mono text-rose-200/90 whitespace-pre-wrap bg-rose-950/50 p-2 rounded border border-rose-500/20 overflow-x-auto">
                       {errorMessage}

@@ -84,7 +84,7 @@ export function App() {
   ): Promise<string | null> => {
     const res = await ApiClient.createDiagram(title, code, folderPath, theme);
     if (!res.success) {
-      return res.error || 'Mermaid compilation failed.';
+      return res.error || 'Diagram compilation failed.';
     }
     // Refresh current folder view
     await loadTree(currentFolder);

@@ -59,7 +59,7 @@ export const DiagramGrid: React.FC<DiagramGridProps> = ({
         </div>
         <h3 className="text-lg font-semibold text-white mb-1">No diagrams found</h3>
         <p className="text-sm text-dark-muted max-w-md mb-5">
-          There are no Mermaid diagrams in this directory yet. Create your first diagram or explore other folders.
+          There are no diagrams in this directory yet. Create your first diagram or explore other folders.
         </p>
         <button
           type="button"
